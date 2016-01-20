@@ -35,7 +35,7 @@ case "$*" in
 esac
 
 # Check the privileges
-if [ ! -w "/etc/passwd" ]; then
+if [[ "$UID" -ne "0"  ]]; then
   echo "Super-user privileges are required."
   exit
 fi
@@ -47,7 +47,7 @@ if ! `lsb_release -ds | grep -sq '14.04'`; then
 fi
 
 # Check the architechture
-if [ "`uname -r`" != "x86_64" ]; then
+if [ "`uname -m`" != "x86_64" ]; then
   echo "uname -a:  `uname -a`"
   echo "The OS is not 64-bit"
   exit 99
@@ -82,7 +82,10 @@ echo "START: `date +%Y.%m.%d_%T`" > "$LOG"
 
 # 1. Some configuration
 ########################################################################################################
-# /etc/sysctl.conf
+# /etc/sysctl.conf 
+# More: https://www.howtoforge.com/tutorial/linux-swappiness/
+# http://www.binarytides.com/disable-ipv6-ubuntu/
+# 
 if ! `grep -sqm1 "^vm.swappiness" /etc/sysctl.conf`; then
 	cat >> /etc/sysctl.conf <<- 'SYSCTL'
 	vm.swappiness=0
@@ -110,7 +113,7 @@ if ! `grep -sqm1 "^vm.swappiness" /etc/sysctl.conf`; then
 	/sbin/sysctl -p/etc/sysctl.conf
 fi
 
-# SSD TRIM
+# SSD TRIM (More: http://www.howtogeek.com/176978/ubuntu-doesnt-trim-ssds-by-default-why-not-and-how-to-enable-it-yourself/)
 for DISK in $(fdisk -l 2> /dev/null | grep -i "^Disk /" | awk -F'[ |:]' '{print $2}'); do
   hdparm -I ${DISK} | grep -sqim1 "TRIM supported" && { trim_enable=1; break; }
 done
@@ -122,8 +125,33 @@ if [ "${trim_enable}" -eq 1 ]; then
   fi
 fi
 
-# I like Large RAM. My laptop RAM is 12GB
+# Use RAM storage for /tmp. My laptop RAM is 12GB (More: https://wiki.archlinux.org/index.php/Tmpfs)
 grep -sqm1 "^tmpfs /tmp" /etc/fstab || echo "tmpfs /tmp tmpfs defaults,noatime,nosuid,nodev,mode=1777,size=75% 0 0" >> /etc/fstab
+
+# Disable Apport at Boot (More: http://howtoubuntu.org/how-to-disable-stop-uninstall-apport-error-reporting-in-ubuntu)
+sed -i 's/enabled=1/enabled=0/g' /etc/default/apport
+
+#/etc/rc.local
+if ! grep -sq ChromiumCacheDir /etc/rc.local;  then
+	sed -i '/exit 0/d' /etc/rc.local
+	cat >> /etc/rc.local <<- 'END'
+	#Change the screen brightness
+	echo 9 > /sys/class/backlight/acpi_video0/brightness
+
+	mkdir -p /tmp/ChromiumCacheDir/firefox /tmp/ChromiumCacheDir/chrome /tmp/linux
+	/bin/chown kashu.kashu -R /tmp/ChromiumCacheDir/ /tmp/linux
+
+	# Disable Wi-Fi at startup time
+	#/usr/bin/nmcli nm wifi off
+	exit 0
+	END
+fi
+#Move the Chromium cache directory to /tmp/ChromiumCacheDir
+mkdir -p /home/${u_name}/.cache/chromium/ /tmp/ChromiumCacheDir/firefox /tmp/ChromiumCacheDir/chrome /tmp/linux
+ln -s /home/${u_name}/.cache/chromium/Default /tmp/ChromiumCacheDir/
+chown -R ${u_name}.${u_name} /home/${u_name}/.cache/chromium/ /tmp/ChromiumCacheDir/ /tmp/linux
+#rmdir /var/lib/libvirt/images
+#ln -s /var/lib/libvirt/images /tmp/linux
 
 # Download the latest hosts file from github.com (For 跳墙)
 DATE=`date +%Y%m%d_%H%M%S`
@@ -149,19 +177,17 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	alias aria2c='aria2c -c -d /tmp -t 300 -m 30 -s10 -k5M -x10'
 	alias cleancache='echo 123 | sudo -S sync && sleep 3 && sudo sysctl -w vm.drop_caches=1'
 	alias cleanswap='echo 123 | sudo -S swapoff -a && sudo sh -c "sync && sleep 3 && sysctl -w vm.drop_caches=1" && sudo swapon -a'
-	alias ishadowsocks='wget -q html http://ishadowsocks.com -O - | grep 密码: | cut -d: -f2 | cut -d\< -f1'
 	#alias dstat='echo 123 | sudo -S dstat -lcdnmspyt -N eth0 -D total,sda,sdb'
 	alias dstat='dstat -cdnmpy -N eth0 -D total,sda,sdb --top-bio-adv'
-	alias calc='gnome-calculator &'
-	alias apt-get='/usr/bin/apt-fast'
-	alias chrome='/usr/bin/chromium-browser &'
-	alias TTY='sudo miniterm.py -p /dev/ttyUSB0 --lf'
+	alias rdesktopsh='rdesktop -u administrator -p passwd -r clipboard:CLIPBOARD -g 1024x700 -T 2xx.6x.56.6 -r sound:off -N -P -m -E -0 -a 15 2xxxxxx:x181'
 
 	# append to the history file, don't overwrite it
 	shopt -s histappend
 	# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-	HISTSIZE=100000
+	# Set the maximum number of lines contained in the history file
 	HISTFILESIZE=30000
+	# Set the number of commands to remember in the command history
+	HISTSIZE=15000
 	PROMPT_COMMAND="history -a"
 	HISTTIMEFORMAT="%Y-%m-%d_%H:%M:%S "
 	# Don't store duplicate adjacent items in the history
@@ -466,7 +492,7 @@ apt-fast dist-upgrade -y
 
 # 4. Install apps.     ## Stage 1 ##
 ########################################################################################################
-#apt-fast install vim ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras lxc shellcheck git virt-manager qemu-system qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu
+#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager qemu-system qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager cifs-utils
 #
 #docker.io 
 #
@@ -477,11 +503,15 @@ apt-fast dist-upgrade -y
 #LXC模板缓存的默认存放路径
 #/var/cache/lxc
 echo -e "\n\n# Install apps.     ## Stage 1 ##" >> $LOG
-for a in vim ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff lxc shellcheck git virt-manager qemu-system qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu; do
+for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager qemu-system qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager cifs-utils; do
   dpkg -s ${a} &> /dev/null || { apt-fast install -y ${a} || echo "Software: ${a} install failed" >> ${LOG}; }
 done
 
+# For gedit Chinese character support
+gsettings set org.gnome.gedit.preferences.encodings auto-detected "['UTF-8','GB18030','GB2312','GBK','BIG5','CURRENT','UTF-16']"
+
 if ! `grep -sq ^http /etc/proxychains.conf`; then
+	sed -ri 's/(^socks)(.*)/#\1\2/g' /etc/proxychains.conf
   echo 'http 127.0.0.1 8787' >> /etc/proxychains.conf
 fi
 
@@ -551,15 +581,77 @@ fi
 #more: http://calibre-ebook.com/download_linux
 #sudo -v && wget -nv -O- https://raw.githubusercontent.com/kovidgoyal/calibre/master/setup/linux-installer.py | sudo python -c "import sys; main=lambda:sys.stderr.write('Download failed\n'); exec(sys.stdin.read()); main()"
 
-#Xtreme Download Manager
-#http://sourceforge.net/projects/xdman/files/
-#http://www.noobslab.com/2015/08/xtreme-download-manager-update-brought.html
-
 #more: https://www.playonlinux.com/en/download.html
 #wget -q "http://deb.playonlinux.com/public.gpg" -O- | sudo apt-key add -
 #sudo wget http://deb.playonlinux.com/playonlinux_trusty.list -O /etc/apt/sources.list.d/playonlinux.list
 #sudo apt-get update
 #sudo apt-get install playonlinux
+
+#TeamViewer
+#aria2c http://download.teamviewer.com/download/teamviewer_amd64.deb
+#On newer 64-bit DEB-systems with Multiarch-support (Debian 7) teamviewer_linux_x64.deb cannot be installed because the package ia32-libs is not available anymore on these systems. In this case you can use teamviewer_i386.deb instead. (https://www.teamviewer.com/en/help/363-How-do-I-install-TeamViewer-on-my-Linux-distribution.aspx)
+#dpkg -i ./teamviewer_amd64.deb
+
+###teamviewer_i386.deb may be better...###
+#aria2c http://download.teamviewer.com/download/teamviewer_i386.deb
+#dpkg -i ./teamviewer_i386.deb
+#apt-get -f install
+
+#variety (wallpaper changer)
+#/usr/bin/apt-fast install variety -y
+
+#安装bleachbit清理工具
+#More：http://bleachbit.sourceforge.net/download/linux
+#For Xubuntu 14.04:
+#dpkg -i ./bleachbit_1.6_all_ubuntu1404.deb
+#apt-get -f install -y
+
+#The Brain (MindMap)
+#More: http://www.thebrain.com/products/thebrain/download/
+#http://assets.thebrain.com/downloads/TheBrain_unix_8_0_1_6.sh
+
+#深度截图
+#wget http://packages.linuxdeepin.com/deepin/pool/main/d/deepin-scrot/deepin-scrot_2.0-0deepin_all.deb
+#python依赖
+#sudo apt-get install python-xlib
+#sudo dpkg -i deepin-scrot_2.0-0deepin_all.deb
+#终端下启动
+#$ deepin-scort
+
+#XnConvert（图片处理神器）
+#More：http://www.xnview.com/en/xnconvert/
+#dpkg -i ./XnConvert-linux-x64.deb
+#if [ "$?" != "0" ]; then echo "XnConvert install failed!" && exit 1; fi
+
+#Google Earth（谷歌地球）
+#官网：http://www.google.com/intl/en/earth/download/ge/agree.html
+#aria2c -c https://dl.google.com/dl/earth/client/current/google-earth-stable_current_amd64.deb
+#sudo dpkg -i google-earth-stable_current_amd64.deb
+#sudo apt-get -f install（若执行上面的安装后提示有依赖包要装，就执行此命令安装即可）
+#sudo dpkg -i google-earth-stable_current_amd64.deb（若执行了上面那条命令，需重新执行此安装命令）
+
+#虾米电台
+#官网：https://launchpad.net/~timxx/+archive/ubuntu/xmradio
+#sudo add-apt-repository ppa:timxx/xmradio
+#sudo apt-get update
+#sudo apt-get install xmradio
+
+#XAMPP（集成了Apache+Mysql+PHP+Perl环境，提供了一个现成的建站环境）
+#官网：http://sourceforge.net/projects/xampp/files/XAMPP%20Linux/
+#把软件移动到/opt目录里：sudo mv ./sudo mv xampp-linux-x64-1.8.3-1-installer.run /opt
+#添加可执行权限：sudo chmod +700 xampp-linux-x64-1.8.3-1-installer.run
+#安装：sudo ./xampp-linux-x64-1.8.3-1-installer.run
+
+#Gis Weather天气预报（很漂亮的一款桌面挂件式天气预报）
+#More：http://sourceforge.net/projects/gis-weather/files/gis-weather/
+#aria2c -c http://jaist.dl.sourceforge.net/project/gis-weather/gis-weather/0.7.5/gis-weather_0.7.5_all.deb
+#dpkg -i ./gis-weather_0.7.7_all.deb
+#apt-fast -f install -y
+
+#Xtreme Download Manager（极速下载，非常优秀的一款下载管理器）
+#More：http://sourceforge.net/projects/xdman/files/?source=navbar
+#dpkg -i xdman.deb
+#apt-fast -f install -y
 
 echo -e "\n\n# 5.1 Add PPAs." >> $LOG
 for b in ppa:fcitx-team/nightly ppa:linrunner/tlp ppa:pi-rho/security ppa:nilarimogard/webupd8 ppa:ubuntu-wine/ppa ppa:coolwanglu/pdf2htmlex ppa:diodon-team/stable ppa:gezakovacs/ppa ppa:mc3man/trusty-media ppa:lzh9102/qwinff ppa:maarten-baert/simplescreenrecorder ppa:otto-kesselgulasch/gimp ppa:plushuang-tw/uget-stable ppa:stebbins/handbrake-releases ppa:team-xbmc/ppa ppa:webupd8team/y-ppa-manager ppa:wseverin/ppa ppa:thomas-schiex/blender ppa:pinta-maintainers/pinta-stable ppa:zanchey/asciinema ppa:caffeine-developers/ppa ppa:indicator-multiload/stable-daily; do
@@ -636,7 +728,7 @@ if [ ! -x "/usr/bin/lantern" ]; then
 fi
 # Start Lantern
 if [ -x "/usr/lib/lantern/lantern.sh" ]; then
-  if ! `pgrep lantern`; then
+  if ! pgrep lantern; then
     nohup /home/${u_name}/.lantern/bin/lantern -addr 0.0.0.0:8787 -startup=true -role=client &> /dev/null &
   fi
 fi
@@ -683,7 +775,7 @@ fi
 #if [ ! -x "/usr/bin/youtube-dl" ]; then
   uLINK="$(wget --no-check-certificate -qO - https://rg3.github.io/youtube-dl/download.html|grep 'youtube-dl -O ' -|sed 's/\(.*\)\(http.*dl\ \)\(.*\)/\2/g')"
   wget --no-check-certificate -T 10 "${uLINK}" -O /usr/bin/youtube-dl
-  if [ $? -ne 0 -a `pgrep lantern` ]; then
+  if [ $? -ne 0 ] && pgrep lantern; then
     /usr/bin/proxychains wget --no-check-certificate -T 10 "${uLINK}" -O /usr/bin/youtube-dl
     chmod 755 /usr/bin/youtube-dl
   fi
@@ -694,7 +786,7 @@ fi
 #For 32-bit: http://georgielabs.altervista.org/SoundWire_Server_linux32.tar.gz
 #Andriod: https://play.google.com/store/apps/details?id=com.georgie.SoundWireFree
 if [ ! -x "/opt/SoundWireServer/SoundWireServer" ]; then
-	if `pgrep lantern`; then
+	if pgrep lantern; then
 		/usr/bin/proxychains wget http://georgielabs.altervista.org/SoundWire_Server_linux64.tar.gz
 		tar -C /opt -xf SoundWire_Server_linux64.tar.gz
 
@@ -825,6 +917,9 @@ fi
 #fi
 
 # User autostart config: /home/${u_name}/.config/autostart/
+mkdir -p /home/${u_name}/.config/autostart
+chown ${u_name}.${u_name} /home/${u_name}/.config/autostart
+
 if [ ! -s "/home/${u_name}/.config/autostart/hddtemp.desktop" ]; then
 	cat > /home/${u_name}/.config/autostart/hddtemp.desktop <<- 'END'
 	[Desktop Entry]
@@ -881,7 +976,7 @@ if [ ! -s "/home/${u_name}/.config/autostart/lantern.desktop" ]; then
 	Type=Application
 	Name=Lantern
 	Comment=Lantern
-	Exec=/usr/bin/nohup sh -c "/bin/sleep 5 && /usr/lib/lantern/lantern.sh -addr 0.0.0.0:8788 -startup=true -role=client &> /dev/null"
+	Exec=/usr/bin/nohup sh -c "/bin/sleep 5 && /usr/lib/lantern/lantern.sh -addr 0.0.0.0:8787 -startup=true -role=client &> /dev/null"
 	OnlyShowIn=XFCE;
 	StartupNotify=false
 	Terminal=false
@@ -913,9 +1008,45 @@ fi
 chown -R ${u_name}.${u_name} /home/${u_name}/
 chmod 664 /home/${u_name}/.config/autostart/*
 
+#QQ
+#Office
+
+apt-fast update
+apt-fast upgrade -y
+apt-get autoremove -y
+
+# Disable some auto-start services
+for i in *mysql *nginx *hddtemp *speech-dispatcher *saned; do
+  find /etc/rc2.d/ -name "${i}" | rename 's/S/K/g'
+done
+
+# Disable cups and cups-browsed services
+if ! `grep -Em1 ".*started.*runlevel" /etc/init/cups.conf | grep -sqE "^[[:space:]]?+#"`; then
+  sed -ri 's@(.*started.*runlevel)(.*)@\#\1\2@g' /etc/init/cups.conf
+  sed -i  '/^start on/a and (runlevel []))' /etc/init/cups.conf
+fi
+
+if ! `grep -Em1 ".*started.*runlevel" /etc/init/cups-browsed.conf | grep -sqE "^[[:space:]]?+#"`; then
+  sed -ri 's@(.*started.*runlevel)(.*)@\#\1\2@g' /etc/init/cups-browsed.conf
+  sed -i '/^start on/a and (runlevel []))' /etc/init/cups-browsed.conf
+fi
+
+# Disable TFTP service
+if ! `grep -Em1 ".*start.*runlevel" /etc/init/tftpd-hpa.conf | grep -sqE "^[[:space:]]?+#"`; then
+  sed -ri 's/(.*start.*runlevel)(.*)/#\1\2/g' /etc/init/tftpd-hpa.conf
+  sed -ri '/.*start.*runlevel.*/a start on runlevel []' /etc/init/tftpd-hpa.conf
+fi
+
+update-rc.d -f hddtemp remove
+update-rc.d -f in.tftpd remove
+update-rc.d -f hostapd remove
+update-rc.d -f php5-fpm remove
+
 echo "END: `date +%Y.%m.%d_%T`" >> $LOG
 clear && ccze -A < $LOG
-if `pgrep lantern`; then
+if pgrep lantern; then
   echo "Lantern is running:"
   ps -eo args|grep lantern|sort -u|grep '0.0.0.0'
 fi
+
+#gnome-font-viewer
