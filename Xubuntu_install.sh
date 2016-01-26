@@ -1,14 +1,13 @@
 #!/bin/bash
 #Author: kashu
 #My Website: https://kashu.org
-#Date: 2016-01-15
+#Date: 2016-01-21
 #Filename: Xubuntu_installation.sh
 #Description: Things I must to do after fresh installation of Xubuntu 14.04.x amd64.
-#
+
 #This shell script will install many programs and do some very IMPORTANT settings.
 #Some applications you may not want to install, so you need to modify this script to meet your needs. 
-#Like it or not, all of these apps are very useful for me.
-#
+#All of these apps are very useful for me. I believe you will like it too.
 
 # Help info
 help_info(){
@@ -17,8 +16,6 @@ help_info(){
 	$ sudo ./xubuntu.app.install.sh [-h|-H|-help|--help]
 	
 	Error exit codes with special meanings:
-	98     The current OS is not Xubuntu 14.04.x
-	99     The OS is not 64-bit
 	100    User ${u_name} add failed. 
 	101    apt-fast download failed! --> https://github.com/ilikenwf/apt-fast/archive/master.zip
 	102    aria2 install failed! --> apt-get install -y aria2
@@ -40,17 +37,20 @@ if [[ "$UID" -ne "0"  ]]; then
   exit
 fi
 
-# Check current OS release
+# Check the current OS version
 if ! `lsb_release -ds | grep -sq '14.04'`; then
-  grep -sq 14.04 /etc/issue ||\
-  { echo "Current OS is `awk '{print $1" "$2}' /etc/issue`"; echo "Recommand OS: Xubuntu 14.04.x"; exit 98; }
+  grep -sq 14.04 /etc/issue || {
+  echo "Current OS is `awk '{print $1" "$2}' /etc/issue`"
+  echo "Recommand OS: Xubuntu 14.04.x"
+  exit
+  }
 fi
 
 # Check the architechture
 if [ "`uname -m`" != "x86_64" ]; then
   echo "uname -a:  `uname -a`"
   echo "The OS is not 64-bit"
-  exit 99
+  exit
 fi
 
 # Specify an user that you usually use
@@ -58,7 +58,7 @@ echo -e "\nPlease give me an username that you usually use."
 echo -e "Attention: Some settings will apply to that user which provided by you."
 echo -e "If that user dosen't exist on the system, it will be create automatically\n"
 read -p 'Enter username: ' u_name
-echo ${u_name}
+
 if ! `cut -d: -f1 /etc/passwd | grep -sq "${u_name}"`; then
   if ! `useradd "${u_name}"`; then
     echo "User ${u_name} add failed"
@@ -81,11 +81,10 @@ echo "START: `date +%Y.%m.%d_%T`" > "$LOG"
 
 
 # 1. Some configuration
-########################################################################################################
+############################################################################
 # /etc/sysctl.conf 
 # More: https://www.howtoforge.com/tutorial/linux-swappiness/
 # http://www.binarytides.com/disable-ipv6-ubuntu/
-# 
 if ! `grep -sqm1 "^vm.swappiness" /etc/sysctl.conf`; then
 	cat >> /etc/sysctl.conf <<- 'SYSCTL'
 	vm.swappiness=0
@@ -113,7 +112,7 @@ if ! `grep -sqm1 "^vm.swappiness" /etc/sysctl.conf`; then
 	/sbin/sysctl -p/etc/sysctl.conf
 fi
 
-# SSD TRIM (More: http://www.howtogeek.com/176978/ubuntu-doesnt-trim-ssds-by-default-why-not-and-how-to-enable-it-yourself/)
+# SSD TRIM (More: http://www.howtogeek.com/176978/ubuntu-doesnt-trim-ssds-by-default-why-not-and-how-to-enable-it-yourself)
 for DISK in $(fdisk -l 2> /dev/null | grep -i "^Disk /" | awk -F'[ |:]' '{print $2}'); do
   hdparm -I ${DISK} | grep -sqim1 "TRIM supported" && { trim_enable=1; break; }
 done
@@ -126,17 +125,18 @@ if [ "${trim_enable}" -eq 1 ]; then
 fi
 
 # Use RAM storage for /tmp. My laptop RAM is 12GB (More: https://wiki.archlinux.org/index.php/Tmpfs)
-grep -sqm1 "^tmpfs /tmp" /etc/fstab || echo "tmpfs /tmp tmpfs defaults,noatime,nosuid,nodev,mode=1777,size=75% 0 0" >> /etc/fstab
+grep -sqm1 "^tmpfs /tmp" /etc/fstab ||\
+echo "tmpfs /tmp tmpfs defaults,noatime,nosuid,nodev,mode=1777,size=75% 0 0" >> /etc/fstab
 
-# Disable Apport at Boot (More: http://howtoubuntu.org/how-to-disable-stop-uninstall-apport-error-reporting-in-ubuntu)
+# Disable Apport at startup (More: http://howtoubuntu.org/how-to-disable-stop-uninstall-apport-error-reporting-in-ubuntu)
 sed -i 's/enabled=1/enabled=0/g' /etc/default/apport
 
 #/etc/rc.local
-if ! grep -sq ChromiumCacheDir /etc/rc.local;  then
+if ! grep -sq ChromiumCacheDir /etc/rc.local; then
 	sed -i '/exit 0/d' /etc/rc.local
 	cat >> /etc/rc.local <<- 'END'
 	#Change the screen brightness
-	echo 9 > /sys/class/backlight/acpi_video0/brightness
+	#echo 9 > /sys/class/backlight/acpi_video0/brightness
 
 	mkdir -p /tmp/ChromiumCacheDir/firefox /tmp/ChromiumCacheDir/chrome /tmp/linux
 	/bin/chown kashu.kashu -R /tmp/ChromiumCacheDir/ /tmp/linux
@@ -177,9 +177,12 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	alias aria2c='aria2c -c -d /tmp -t 300 -m 30 -s10 -k5M -x10'
 	alias cleancache='echo 123 | sudo -S sync && sleep 3 && sudo sysctl -w vm.drop_caches=1'
 	alias cleanswap='echo 123 | sudo -S swapoff -a && sudo sh -c "sync && sleep 3 && sysctl -w vm.drop_caches=1" && sudo swapon -a'
+	alias ishadowsocks='wget -q html http://ishadowsocks.com -O - | grep 密码: | cut -d: -f2 | cut -d\< -f1'
 	#alias dstat='echo 123 | sudo -S dstat -lcdnmspyt -N eth0 -D total,sda,sdb'
 	alias dstat='dstat -cdnmpy -N eth0 -D total,sda,sdb --top-bio-adv'
-	alias rdesktopsh='rdesktop -u administrator -p passwd -r clipboard:CLIPBOARD -g 1024x700 -T 2xx.6x.56.6 -r sound:off -N -P -m -E -0 -a 15 2xxxxxx:x181'
+	alias calc='gnome-calculator &'
+	alias apt-get='/usr/bin/apt-fast'
+	alias TTY='sudo miniterm.py -p /dev/ttyUSB0 --lf'
 
 	# append to the history file, don't overwrite it
 	shopt -s histappend
@@ -440,28 +443,28 @@ if [ ! -s "/home/${u_name}/.conkyrc" ]; then
 fi
 
 
-# 2. Uninstall some unnecessary applications(blueman, 蓝牙支持也会删除，因为我笔记本没蓝牙 :P )
-########################################################################################################
+# 2. Uninstall some unnecessary applications (blueman, 蓝牙支持也会删除，因为我笔记本没蓝牙 :P )
+############################################################################
 apt-get -y autoremove printer-driver* abiword* gnumeric* thunderbird xfce4-dict xchat* pidgin* xfburn gnome-mines gnome-sudoku parole gmusicbrowser transmission* simple-scan blueman
 
 
-# 3. Install apt-fast
-########################################################################################################
+# 3. Install apt-fast (IMPORTANT)
+############################################################################
 if [ ! -x "/usr/bin/apt-fast" ]; then
   wget -qO "$PWD"/apt-fast.zip https://github.com/ilikenwf/apt-fast/archive/master.zip
   
   if [ -s "apt-fast.zip" ]; then
     unzip -o "$PWD"/apt-fast.zip
   else
-    echo "apt-fast download failed! --> https://github.com/ilikenwf/apt-fast/archive/master.zip" && exit 101
+    echo "apt-fast download failed! --> https://github.com/ilikenwf/apt-fast/archive/master.zip"
+    exit 101
   fi
   
   apt-get install -y aria2
   
-  if [ -s "/usr/bin/aria2c" ]; then
-    :
-  else
-    echo "aria2c install failed! --> apt-get install -y aria2" && exit 102
+  if [ ! -s "/usr/bin/aria2c" ]; then
+    echo "aria2c install failed! --> apt-get install -y aria2"
+    exit 102
   fi
   
   cp "$PWD"/apt-fast-master/apt-fast /usr/bin/
@@ -473,7 +476,8 @@ if [ ! -x "/usr/bin/apt-fast" ]; then
   gzip -f9 /usr/share/man/man5/apt-fast.conf.5
   
   if [ ! -x "/usr/bin/apt-fast" ]; then
-    echo "apt-fast install failed!" && exit 103
+    echo "apt-fast install failed!"
+    exit 103
   fi
 fi
 
@@ -491,20 +495,14 @@ apt-fast dist-upgrade -y
 
 
 # 4. Install apps.     ## Stage 1 ##
-########################################################################################################
+############################################################################
 #apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager qemu-system qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager cifs-utils
-#
 #docker.io 
-#
-#LXC默认自带的镜像模板存放路径：
-#ls /usr/share/lxc/templates/
-#LXC容器的默认存放路径，也可以使用-P /path来指定自己想要的路径：
-#/var/lib/lxc
-#LXC模板缓存的默认存放路径
-#/var/cache/lxc
 echo -e "\n\n# Install apps.     ## Stage 1 ##" >> $LOG
 for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager qemu-system qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager cifs-utils; do
-  dpkg -s ${a} &> /dev/null || { apt-fast install -y ${a} || echo "Software: ${a} install failed" >> ${LOG}; }
+  dpkg -s ${a} &> /dev/null || { 
+  apt-fast install -y ${a} || echo "Software: ${a} install failed" >> ${LOG}
+  }
 done
 
 # For gedit Chinese character support
@@ -519,7 +517,7 @@ fi
 # 5.1 Add PPAs.
 # Attention: If your network got fucked by GFW(The Great Firewall of China) or ISP, some PPAs may be failed to add and some APPs will not be installed.
 # But don't worry about it, we'll try the best, just go ahead and forget it.
-########################################################################################################
+############################################################################
 #add-apt-repository -y ppa:fcitx-team/nightly
 #add-apt-repository -y ppa:linrunner/tlp
 #add-apt-repository -y ppa:pi-rho/security
@@ -542,11 +540,6 @@ fi
 #add-apt-repository -y ppa:zanchey/asciinema
 #add-apt-repository -y ppa:caffeine-developers/ppa
 #add-apt-repository -y ppa:indicator-multiload/stable-daily
-
-#More: https://asciinema.org/
-#sudo apt-add-repository ppa:zanchey/asciinema
-#sudo apt-get update
-#sudo apt-get install asciinema
 
 #add-apt-repository -y ppa:notepadqq-team/notepadqq
 #apt-fast update
@@ -573,7 +566,6 @@ fi
 #apt-get update
 #apt-get install --install-recommends pipelight-multi
 #pipelight-plugin --update
-
 #pipelight-plugin --enable unity3d
 #pipelight-plugin --enable silverlight5.1
 
@@ -597,7 +589,7 @@ fi
 #dpkg -i ./teamviewer_i386.deb
 #apt-get -f install
 
-#variety (wallpaper changer)
+#variety (wallpaper switch)
 #/usr/bin/apt-fast install variety -y
 
 #安装bleachbit清理工具
@@ -663,7 +655,7 @@ done
 
 
 # 5.2 Install APPs.     ## Stage 2 ##
-########################################################################################################
+############################################################################
 #apt-fast install fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm
 echo -e "\n\n# 5.2 Install APPs.     ## Stage 2 ##" >> $LOG
 
@@ -682,7 +674,9 @@ else
 fi
 
 for c in fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm; do
-  dpkg -s ${c} &> /dev/null || { apt-fast -y install ${c} || echo "Software: ${c} install failed" >> ${LOG}; }
+  dpkg -s ${c} &> /dev/null || {
+  apt-fast -y install ${c} || echo "Software: ${c} install failed" >> ${LOG}
+  }
 done
 
 if [ -x "/usr/bin/kodi" ]; then
@@ -699,7 +693,7 @@ fi
 
 
 # 5.3 Install APPs.     ## Stage 3 ## 
-########################################################################################################
+############################################################################
 echo -e "\n\n# 5.3 Install APPs.     ## Stage 3 ## " >> $LOG
 # PAC Manager (Perl Auto Connector)
 # More: http://sourceforge.net/projects/pacmanager/files/pac-4.0/
@@ -854,10 +848,12 @@ fi
 
 # 5.4 Install APPs.     ## The last stage ## 
 # Put the applications that slow download speeds and slow installation progress at the last stage.
-########################################################################################################
+############################################################################
 echo -e "\n\n# 5.4 Install APPs.     ## The last stage ## " >> $LOG
 for d in xubuntu-restricted-extras wireshark tshark wine1.8 chromium-browser pepperflashplugin-nonfree; do
-  dpkg -s ${d} &> /dev/null || { apt-fast -y install ${d} || echo "Software: ${d} install failed" >> ${LOG}; }
+  dpkg -s ${d} &> /dev/null || {
+  apt-fast -y install ${d} || echo "Software: ${d} install failed" >> ${LOG}
+  }
 done
 
 # Install MariaDB version 10.0
@@ -1046,7 +1042,7 @@ echo "END: `date +%Y.%m.%d_%T`" >> $LOG
 clear && ccze -A < $LOG
 if pgrep lantern; then
   echo "Lantern is running:"
-  ps -eo args|grep lantern|sort -u|grep '0.0.0.0'
+  ps -eo args | grep lantern | sort -u | grep '0.0.0.0'
 fi
 
 #gnome-font-viewer
