@@ -57,7 +57,7 @@ fi
 echo -e "\nPlease give me an username that you usually use."
 echo -e "Attention: Some settings will apply to that user which provided by you."
 echo -e "If that user dosen't exist on the system, it will be create automatically\n"
-read -p 'Enter username: ' u_name
+read -p 'Enter an username: ' u_name
 
 if ! `cut -d: -f1 /etc/passwd | grep -sq "${u_name}"`; then
   if ! `useradd "${u_name}"`; then
@@ -90,9 +90,9 @@ if ! `grep -sqm1 "^vm.swappiness" /etc/sysctl.conf`; then
 	vm.swappiness=0
 	
 	# IPv6 disabled
-	net.ipv6.conf.all.disable_ipv6 = 1
-	net.ipv6.conf.default.disable_ipv6 = 1
-	net.ipv6.conf.lo.disable_ipv6 = 1
+	#net.ipv6.conf.all.disable_ipv6 = 1
+	#net.ipv6.conf.default.disable_ipv6 = 1
+	#net.ipv6.conf.lo.disable_ipv6 = 1
 	
 	# increase TCP max buffer size settable using setsockopt()
 	net.core.rmem_max = 16777216 
@@ -126,7 +126,7 @@ fi
 
 # Use RAM storage for /tmp. My laptop RAM is 12GB (More: https://wiki.archlinux.org/index.php/Tmpfs)
 grep -sqm1 "^tmpfs /tmp" /etc/fstab ||\
-echo "tmpfs /tmp tmpfs defaults,noatime,nosuid,nodev,mode=1777,size=75% 0 0" >> /etc/fstab
+echo "tmpfs /tmp tmpfs defaults,sync,noatime,nosuid,nodev,mode=1777,size=75% 0 0" >> /etc/fstab
 
 # Disable Apport at startup (More: http://howtoubuntu.org/how-to-disable-stop-uninstall-apport-error-reporting-in-ubuntu)
 sed -i 's/enabled=1/enabled=0/g' /etc/default/apport
@@ -139,10 +139,11 @@ if ! grep -sq ChromiumCacheDir /etc/rc.local; then
 	#echo 9 > /sys/class/backlight/acpi_video0/brightness
 
 	mkdir -p /tmp/ChromiumCacheDir/firefox /tmp/ChromiumCacheDir/chrome /tmp/linux
-	/bin/chown kashu.kashu -R /tmp/ChromiumCacheDir/ /tmp/linux
+	#/bin/chown kashu.kashu -R /tmp/ChromiumCacheDir/ /tmp/linux
 
-	# Disable Wi-Fi at startup time
+	# Disable Wi-Fi at startup
 	#/usr/bin/nmcli nm wifi off
+	#rfkill block wifi
 	exit 0
 	END
 fi
@@ -174,15 +175,13 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	alias ..="cd .."        #go to parent dir
 	alias ...="cd ../.."    #go to grandparent dir
 	alias hd='od -Ax -tx1z -v'  # what most people want from od (hexdump)
-	alias aria2c='aria2c -c -d /tmp -t 300 -m 30 -s10 -k5M -x10'
+	#alias aria2c='aria2c -c -d /tmp -t 300 -m 30 -s10 -k5M -x10'
 	alias cleancache='echo 123 | sudo -S sync && sleep 3 && sudo sysctl -w vm.drop_caches=1'
 	alias cleanswap='echo 123 | sudo -S swapoff -a && sudo sh -c "sync && sleep 3 && sysctl -w vm.drop_caches=1" && sudo swapon -a'
-	alias ishadowsocks='wget -q html http://ishadowsocks.com -O - | grep 密码: | cut -d: -f2 | cut -d\< -f1'
 	#alias dstat='echo 123 | sudo -S dstat -lcdnmspyt -N eth0 -D total,sda,sdb'
 	alias dstat='dstat -cdnmpy -N eth0 -D total,sda,sdb --top-bio-adv'
 	alias calc='gnome-calculator &'
 	alias apt-get='/usr/bin/apt-fast'
-	alias TTY='sudo miniterm.py -p /dev/ttyUSB0 --lf'
 
 	# append to the history file, don't overwrite it
 	shopt -s histappend
@@ -341,8 +340,8 @@ if [ ! -s "/home/${u_name}/.conkyrc" ]; then
 	own_window_hints undecorated,below,sticky,skip_taskbar,skip_pager
 	use_xft yes
 	override_utf8_locale yes
-	font Sans:size=10
-	xftfont Sans:size=9
+	#font WenQuanYi Micro Hei:size=10
+	xftfont Roboto:size=9
 	xftalpha 1
 	update_interval 1.0 
 	total_run_times 0
@@ -352,9 +351,10 @@ if [ ! -s "/home/${u_name}/.conkyrc" ]; then
 	draw_borders no
 	draw_graph_borders no
 	###调整个CONKY的最小最大宽度值###
-	minimum_size 210 720
-	maximum_width 210
+	minimum_size 220 768
+	maximum_width 220
 	alignment top_right
+	text_buffer_size 380
 	###相对于右上角的偏移量###
 	gap_x 8
 	gap_y 15
@@ -383,31 +383,27 @@ if [ ! -s "/home/${u_name}/.conkyrc" ]; then
 	### Swap
 	SWAP    ${swapperc}%${alignr}${swap} / ${swapmax}
 	${swapbar 3 160} 
-	${color lightgreen}$stippled_hr${color}
 	Kernel:$alignr${kernel}
-	Load(1 5 15m): $loadavg
+	#Load(1 5 15m): $loadavg
 	## Processes info
 	Processes:$alignr$processes  ($running_processes running)
 	${color #ddaa00}Highest CPU$alignr PID    CPU%
 	${color lightgrey}${top name 1}$alignr${top pid 1}  ${top cpu 1}
 	${top name 2}$alignr${top pid 2}  ${top cpu 2}
 	${top name 3}$alignr${top pid 3}  ${top cpu 3}
-	${top name 4}$alignr${top pid 4}  ${top cpu 4}
+	#${top name 4}$alignr${top pid 4}  ${top cpu 4}
 	${color #ddaa00}Highest MEM$alignr PID   MEM%
 	${color lightgrey}${top_mem name 1}$alignr${top_mem pid 1}  ${top_mem mem 1}
 	${top_mem name 2}$alignr${top_mem pid 2}  ${top_mem mem 2}
 	${top_mem name 3}$alignr${top_mem pid 3}  ${top_mem mem 3}
-	${top_mem name 4}$alignr${top_mem pid 4}  ${top_mem mem 4}
+	#${top_mem name 4}$alignr${top_mem pid 4}  ${top_mem mem 4}
 	### Network Info
-	${color lightgreen}$stippled_hr
 	${color green}Network Info${alignr}TCP_Conn: ${tcp_portmon 1 65535 count}
 	### Eth0
-	${if_up eth0}
-	${color white}${font style=Bold}eth0${font}${alignr}IP: ${color #dcff82}${addr eth0}${color}
+	${if_up eth0}${color white}${font style:bold}eth0${font}${alignr}IP: ${color #dcff82}${addr eth0}${color}
 	${color white}U:${color #dcff82} ${upspeedf eth0} KB/s${alignr}${color white}D:${color dcff82} ${downspeedf eth0} KB/s
-	${downspeedgraph eth0 25,100 000000 ff0000} ${alignr}${upspeedgraph eth0 25,100 000000 00ff00}
-	${color white}U_Total: ${color #dcff82}${totalup eth0}$alignr${color white}D_Total:${color #dcff82}${totaldown eth0}
-	$endif
+	${downspeedgraph eth0 25,100 000000 ff0000} ${alignr}${upspeedgraph eth0 25,100 000000 00ff00}$endif
+	#${color white}U_Total: ${color #dcff82}${totalup eth0}$alignr${color white}D_Total:${color #dcff82}${totaldown eth0}
 	### PPP0
 	#${if_up ppp0}
 	#${color white}${font style=Bold}PPP0${font}${alignr}IP: ${color #dcff82}${addr ppp0}${color}
@@ -416,20 +412,16 @@ if [ ! -s "/home/${u_name}/.conkyrc" ]; then
 	#${color white}U_Total: ${color #dcff82}${totalup ppp0}$alignr${color white}D_Total:${color #dcff82}${totaldown ppp0}
 	#$endif
 	### Wlan0
-	${if_up wlan0}
-	${color white}${font style=Bold}wlan0${font}${alignr}IP: ${color #dcff82}${addr wlan0}${color}
+	${if_up wlan0}${color white}${font style:Bold}wlan0${font}${alignr}IP: ${color #dcff82}${addr wlan0}${color}
 	${color yellow}ESSID:${wireless_essid wlan0}${alignr}${wireless_link_qual_perc wlan0}%
 	${voffset 1}${color white}U:${color #dcff82} ${upspeedf wlan0} KB/s${alignr}${color white}D:${color dcff82} ${downspeedf wlan0} KB/s
 	${downspeedgraph wlan0 25,100 000000 ff0000} ${alignr}${upspeedgraph wlan0 25,100 000000 00ff00}
-	${color white}U_Total: ${color #dcff82}${totalup wlan0}$alignr${color white}D_Total:${color #dcff82}${totaldown wlan0}
-	$endif
-	${color lightgreen}$stippled_hr
-	${color white}/dev/sda: ${color #dcff82}${hddtemp /dev/sda}°C${alignr}${color white}/dev/sdb: ${color #dcff82}${hddtemp /dev/sdb}°C
+	${color white}U_Total: ${color #dcff82}${totalup wlan0}$alignr${color white}D_Total:${color #dcff82}${totaldown wlan0}$endif
 	### /dev/sda
-	${color white}sda_W: ${color #dcff82}${diskio_write /dev/sda}$alignr${color white}sda_R: ${color #dcff82}${diskio_read /dev/sda}
+	${color white}${font style:bold}sda${font}: ${color #dcff82}${hddtemp /dev/sda}°C   ${color white}W: ${color #dcff82}${diskio_write /dev/sda}$alignr${color white}R: ${color #dcff82}${diskio_read /dev/sda}
 	${diskiograph_write /dev/sda 25,100 000000 ff0000}${alignr}${diskiograph_read /dev/sda 25,100 000000 00ff00}
 	### /dev/sdb
-	${color white}sdb_W: ${color #dcff82}${diskio_write /dev/sdb}$alignr${color white}sdb_R: ${color #dcff82}${diskio_read /dev/sdb}
+	${color white}${font style:bold}sdb${font}: ${color #dcff82}${hddtemp /dev/sdb}°C   ${color white}W: ${color #dcff82}${diskio_write /dev/sdb}$alignr${color white}R: ${color #dcff82}${diskio_read /dev/sdb}
 	${diskiograph_write /dev/sdb 25,100 000000 ff0000}${alignr}${diskiograph_read /dev/sdb 25,100 000000 00ff00}
 	### mount point
 	${color }/tmp$alignr${color}${fs_used /tmp} / ${fs_free /tmp}
@@ -438,7 +430,25 @@ if [ ! -s "/home/${u_name}/.conkyrc" ]; then
 	#${fs_bar 3 /home}
 	#${color lightgreen}$stippled_hr
 	#${color green}RSS Reading
-	#${color white}${rss http://www.kashu.org/feed 5 item_titles 14}
+	#${color white}${rss http://rss.cnbeta.com/rss 20 item_titles 10}
+	#${tcp_portmon 1 1024 count}
+	${font style:size=7}
+	echo "pkg hold" | dpkg --set-selections
+	yum update --exclude=pkg_name
+	#git add -A; git status; git commit -m 'XXX'
+	#git remote -v; git push origin master
+	grep -sqm1o a.txt
+	ffmpeg -f concat -i list -c copy a.flv
+	rfkill block wifi
+	sync; sudo sysctl -w vm.drop_caches=1
+	
+	dstat -cdnmpy -Neth0 -Dtotal,sda --top-bio-adv -t
+	enca -L zh -x UTF-8 a.txt
+	wget -O - URL > a.txt
+	sed -ie 's/UTC=yes/UTC=no/g' /etc/default/rcS
+	lsof -p $(echo `ps aux|fgrep chromium|awk '{print $2}'`|tr ' ' ',')|ccze -A|less -R
+	awk -F':' '{print $(NF-1)}' file
+	youtube-dl -f 266+140 --merge-output-format mp4 http://url
 	CONKYRC
 fi
 
@@ -496,20 +506,21 @@ apt-fast dist-upgrade -y
 
 # 4. Install apps.     ## Stage 1 ##
 ############################################################################
-#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager qemu-system qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager cifs-utils
-#docker.io 
+#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common
+#docker.io qemu-system
 echo -e "\n\n# Install apps.     ## Stage 1 ##" >> $LOG
-for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager qemu-system qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager cifs-utils; do
+for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common; do
   dpkg -s ${a} &> /dev/null || { 
   apt-fast install -y ${a} || echo "Software: ${a} install failed" >> ${LOG}
   }
 done
+apt-get clean
 
 # For gedit Chinese character support
 gsettings set org.gnome.gedit.preferences.encodings auto-detected "['UTF-8','GB18030','GB2312','GBK','BIG5','CURRENT','UTF-16']"
 
 if ! `grep -sq ^http /etc/proxychains.conf`; then
-	sed -ri 's/(^socks)(.*)/#\1\2/g' /etc/proxychains.conf
+  sed -ri 's/(^socks)(.*)/#\1\2/g' /etc/proxychains.conf
   echo 'http 127.0.0.1 8787' >> /etc/proxychains.conf
 fi
 
@@ -678,6 +689,7 @@ for c in fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload c
   apt-fast -y install ${c} || echo "Software: ${c} install failed" >> ${LOG}
   }
 done
+apt-get clean
 
 if [ -x "/usr/bin/kodi" ]; then
 	echo "For Kodi(XBMC): wget https://github.com/taxigps/xbmc-addons-chinese/raw/master/repo/\
@@ -727,7 +739,7 @@ if [ -x "/usr/lib/lantern/lantern.sh" ]; then
   fi
 fi
 
-# Master PDF Editor（Linux中最强大的PDF编辑器）
+# Master PDF Editor（PDF编辑器）
 # More: http://code-industry.net/free-pdf-editor.php
 if [ ! -x "/usr/bin/masterpdfeditor3" ]; then
   #aria2c -c http://get.code-industry.net/public/master-pdf-editor-3.5.81_i386.deb
@@ -735,7 +747,7 @@ if [ ! -x "/usr/bin/masterpdfeditor3" ]; then
   dpkg -i ./master-pdf-editor*.deb
 fi
 
-# krop（PDF文档裁剪神器）
+# krop（PDF裁剪神器）
 # More: http://arminstraub.com/software/krop
 if [ ! -x "/usr/bin/krop" ]; then
   wget http://arminstraub.com/downloads/krop/krop_0.4.9-1_all.deb
@@ -758,19 +770,19 @@ fi
 # you-get
 # More: https://github.com/soimort/you-get
 if [ ! -x "/usr/bin/you-get" ]; then
-	wget -O - https://github.com/soimort/you-get/archive/master.zip > "you-get.zip"
-	7z x "you-get.zip" -o/opt
-	find /opt/you-get-master/ -type d -exec chmod 755 {} \;
-	echo 'you-get(){ python3 /opt/you-get-master/you-get $*; }' >> /home/${u_name}/.bashrc
+  wget -O - https://github.com/soimort/you-get/archive/master.zip > "you-get.zip"
+  7z x "you-get.zip" -o/opt
+  find /opt/you-get-master/ -type d -exec chmod 755 {} \;
+  echo 'you-get(){ python3 /opt/you-get-master/you-get $*; }' >> /home/${u_name}/.bashrc
 fi
 
 # youtube-dl
 # More: https://github.com/rg3/youtube-dl
 #if [ ! -x "/usr/bin/youtube-dl" ]; then
-  uLINK="$(wget --no-check-certificate -qO - https://rg3.github.io/youtube-dl/download.html|grep 'youtube-dl -O ' -|sed 's/\(.*\)\(http.*dl\ \)\(.*\)/\2/g')"
-  wget --no-check-certificate -T 10 "${uLINK}" -O /usr/bin/youtube-dl
+  ULINK="$(wget --no-check-certificate -qO - https://rg3.github.io/youtube-dl/download.html|grep 'youtube-dl -O ' -|sed 's/\(.*\)\(http.*dl\ \)\(.*\)/\2/g')"
+  wget --no-check-certificate -T 10 "${ULINK}" -O /usr/bin/youtube-dl
   if [ $? -ne 0 ] && pgrep lantern; then
-    /usr/bin/proxychains wget --no-check-certificate -T 10 "${uLINK}" -O /usr/bin/youtube-dl
+    /usr/bin/proxychains wget --no-check-certificate -T 10 "${ULINK}" -O /usr/bin/youtube-dl
     chmod 755 /usr/bin/youtube-dl
   fi
 #fi
@@ -872,7 +884,7 @@ if ! `dpkg -s libdvdcss? &> /dev/null`; then
   /usr/share/doc/libdvdread4/install-css.sh
 fi
 
-# Set up wireshark to run without root
+# Set up wireshark to run without root privileges
 if [ -x "/usr/bin/wireshark" ]; then
   groupadd -r wireshark
   usermod -a -G wireshark ${u_name}
@@ -956,7 +968,7 @@ if [ ! -s "/home/${u_name}/.config/autostart/caffeine-1.desktop" ]; then
 	Type=Application
 	Name=caffeine
 	Comment=deactivate the screensaver and sleep mode
-	Exec=/usr/bin/nohup sh -c "/bin/sleep 600 && /usr/bin/caffeine-indicator"
+	Exec=/usr/bin/nohup sh -c "/bin/sleep 600 && /usr/bin/caffeine-indicator &> /dev/null"
 	OnlyShowIn=XFCE;
 	StartupNotify=false
 	Terminal=false
@@ -972,7 +984,7 @@ if [ ! -s "/home/${u_name}/.config/autostart/lantern.desktop" ]; then
 	Type=Application
 	Name=Lantern
 	Comment=Lantern
-	Exec=/usr/bin/nohup sh -c "/bin/sleep 5 && /usr/lib/lantern/lantern.sh -addr 0.0.0.0:8787 -startup=true -role=client &> /dev/null"
+	Exec=/usr/bin/nohup sh -c "/bin/sleep 7 && /usr/lib/lantern/lantern.sh -addr 0.0.0.0:8787 -startup=true -role=client &> /dev/null"
 	OnlyShowIn=XFCE;
 	StartupNotify=false
 	Terminal=false
@@ -1010,33 +1022,42 @@ chmod 664 /home/${u_name}/.config/autostart/*
 apt-fast update
 apt-fast upgrade -y
 apt-get autoremove -y
+apt-get clean
 
-# Disable some auto-start services
-for i in *mysql *nginx *hddtemp *speech-dispatcher *saned; do
-  find /etc/rc2.d/ -name "${i}" | rename 's/S/K/g'
+### Discarded ###
+## Disable some auto-start services
+#for i in *mysql *nginx *hddtemp *speech-dispatcher *saned; do
+#  find /etc/rc2.d/ -name "${i}" | rename 's/S/K/g'
+#done
+#
+## Disable cups and cups-browsed services
+#if ! `grep -Em1 ".*started.*runlevel" /etc/init/cups.conf | grep -sqE "^[[:space:]]?+#"`; then
+#  sed -ri 's@(.*started.*runlevel)(.*)@\#\1\2@g' /etc/init/cups.conf
+#  sed -i  '/^start on/a and (runlevel []))' /etc/init/cups.conf
+#fi
+#
+#if ! `grep -Em1 ".*started.*runlevel" /etc/init/cups-browsed.conf | grep -sqE "^[[:space:]]?+#"`; then
+#  sed -ri 's@(.*started.*runlevel)(.*)@\#\1\2@g' /etc/init/cups-browsed.conf
+#  sed -i '/^start on/a and (runlevel []))' /etc/init/cups-browsed.conf
+#fi
+#
+## Disable TFTP service
+#if ! `grep -Em1 ".*start.*runlevel" /etc/init/tftpd-hpa.conf | grep -sqE "^[[:space:]]?+#"`; then
+#  sed -ri 's/(.*start.*runlevel)(.*)/#\1\2/g' /etc/init/tftpd-hpa.conf
+#  sed -ri '/.*start.*runlevel.*/a start on runlevel []' /etc/init/tftpd-hpa.conf
+#fi
+#
+#update-rc.d -f hddtemp remove
+#update-rc.d -f in.tftpd remove
+#update-rc.d -f hostapd remove
+#update-rc.d -f php5-fpm remove
+
+# To toggle some services from starting or stopping permanently (you can start services manually when you need)
+update-rc.d -f mysql remove
+update-rc.d -f nginx remove
+for SRV in nmbd smbd samba rpcbind hddtemp speech-dispatcher saned cups cups-browsed tftpd-hpa hostapd php5-fpm; do
+  echo "manual" > /etc/init/${SRV}.override
 done
-
-# Disable cups and cups-browsed services
-if ! `grep -Em1 ".*started.*runlevel" /etc/init/cups.conf | grep -sqE "^[[:space:]]?+#"`; then
-  sed -ri 's@(.*started.*runlevel)(.*)@\#\1\2@g' /etc/init/cups.conf
-  sed -i  '/^start on/a and (runlevel []))' /etc/init/cups.conf
-fi
-
-if ! `grep -Em1 ".*started.*runlevel" /etc/init/cups-browsed.conf | grep -sqE "^[[:space:]]?+#"`; then
-  sed -ri 's@(.*started.*runlevel)(.*)@\#\1\2@g' /etc/init/cups-browsed.conf
-  sed -i '/^start on/a and (runlevel []))' /etc/init/cups-browsed.conf
-fi
-
-# Disable TFTP service
-if ! `grep -Em1 ".*start.*runlevel" /etc/init/tftpd-hpa.conf | grep -sqE "^[[:space:]]?+#"`; then
-  sed -ri 's/(.*start.*runlevel)(.*)/#\1\2/g' /etc/init/tftpd-hpa.conf
-  sed -ri '/.*start.*runlevel.*/a start on runlevel []' /etc/init/tftpd-hpa.conf
-fi
-
-update-rc.d -f hddtemp remove
-update-rc.d -f in.tftpd remove
-update-rc.d -f hostapd remove
-update-rc.d -f php5-fpm remove
 
 echo "END: `date +%Y.%m.%d_%T`" >> $LOG
 clear && ccze -A < $LOG
@@ -1045,4 +1066,3 @@ if pgrep lantern; then
   ps -eo args | grep lantern | sort -u | grep '0.0.0.0'
 fi
 
-#gnome-font-viewer
