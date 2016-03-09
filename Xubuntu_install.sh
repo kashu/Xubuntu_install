@@ -1,8 +1,8 @@
 #!/bin/bash
 #Author: kashu
 #My Website: https://kashu.org
-#Date: 2016-01-21
-#Filename: Xubuntu_installation.sh
+#Date: 2016-03-10
+#Filename: Xubuntu_install.sh
 #Description: Things I must to do after fresh installation of Xubuntu 14.04.x amd64.
 
 #This shell script will install many programs and do some very IMPORTANT settings.
@@ -90,9 +90,9 @@ if ! `grep -sqm1 "^vm.swappiness" /etc/sysctl.conf`; then
 	vm.swappiness=0
 	
 	# IPv6 disabled
-	#net.ipv6.conf.all.disable_ipv6 = 1
-	#net.ipv6.conf.default.disable_ipv6 = 1
-	#net.ipv6.conf.lo.disable_ipv6 = 1
+	net.ipv6.conf.all.disable_ipv6 = 1
+	net.ipv6.conf.default.disable_ipv6 = 1
+	net.ipv6.conf.lo.disable_ipv6 = 1
 	
 	# increase TCP max buffer size settable using setsockopt()
 	net.core.rmem_max = 16777216 
@@ -178,10 +178,15 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	#alias aria2c='aria2c -c -d /tmp -t 300 -m 30 -s10 -k5M -x10'
 	alias cleancache='echo 123 | sudo -S sync && sleep 3 && sudo sysctl -w vm.drop_caches=1'
 	alias cleanswap='echo 123 | sudo -S swapoff -a && sudo sh -c "sync && sleep 3 && sysctl -w vm.drop_caches=1" && sudo swapon -a'
+	alias ishadowsocks='wget -q html http://ishadowsocks.com -O - | grep 密码: | cut -d: -f2 | cut -d\< -f1'
 	#alias dstat='echo 123 | sudo -S dstat -lcdnmspyt -N eth0 -D total,sda,sdb'
 	alias dstat='dstat -cdnmpy -N eth0 -D total,sda,sdb --top-bio-adv'
 	alias calc='gnome-calculator &'
 	alias apt-get='/usr/bin/apt-fast'
+	alias chrome='/usr/bin/chromium-browser &'
+	alias goagent='echo 123 | sudo -S python /opt/goagent-3.0/local/proxy.py'
+	#alias go='sudo python /opt/goagent-goagent-03e2040/local/proxy.py &'
+	alias TTY='sudo miniterm.py -p /dev/ttyUSB0 --lf'
 
 	# append to the history file, don't overwrite it
 	shopt -s histappend
@@ -231,7 +236,8 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	nicemount(){ (echo "DEVICE PATH TYPE OPTIONS" && mount | awk '$2=$4="";1') | column -t; }
 
 	# 4. Currency Converter. Usage: currency 1 usd cny
-	currency(){ curl -s "https://www.google.com/finance/converter?a=$1&from=$2&to=$3" | sed '/res/!d;s/<[^>]*>//g'; }
+	currency(){ curl -s -x http://localhost:8787 "https://www.google.com/finance/converter?a=$1&from=$2&to=$3" | sed '/res/!d;s/<[^>]*>//g'; }
+	#currency(){ curl -s "https://www.google.com/finance/converter?a=$1&from=$2&to=$3" | sed '/res/!d;s/<[^>]*>//g'; }
 
 	# 5. Update specific PPA. Usage: ppaupdate ppa:plushuang-tw/uget-stable
 	ppaupdate(){ sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/$1" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"; }
@@ -500,16 +506,17 @@ if `grep -F archive.canonical.com/ubuntu /etc/apt/sources.list | grep -Esq "^[[:
   fi
 fi
 
+apt-get clean
 apt-fast update
 apt-fast dist-upgrade -y
 
 
 # 4. Install apps.     ## Stage 1 ##
 ############################################################################
-#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common
+#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar
 #docker.io qemu-system
 echo -e "\n\n# Install apps.     ## Stage 1 ##" >> $LOG
-for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common; do
+for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar; do
   dpkg -s ${a} &> /dev/null || { 
   apt-fast install -y ${a} || echo "Software: ${a} install failed" >> ${LOG}
   }
@@ -667,7 +674,7 @@ done
 
 # 5.2 Install APPs.     ## Stage 2 ##
 ############################################################################
-#apt-fast install fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm
+#apt-fast install fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc vlc-plugin-libde265 ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm
 echo -e "\n\n# 5.2 Install APPs.     ## Stage 2 ##" >> $LOG
 
 # Install Stable version of Nginx
@@ -684,7 +691,7 @@ else
   apt-fast update
 fi
 
-for c in fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm; do
+for c in fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc vlc-plugin-libde265 ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm; do
   dpkg -s ${c} &> /dev/null || {
   apt-fast -y install ${c} || echo "Software: ${c} install failed" >> ${LOG}
   }
@@ -774,6 +781,24 @@ if [ ! -x "/usr/bin/you-get" ]; then
   7z x "you-get.zip" -o/opt
   find /opt/you-get-master/ -type d -exec chmod 755 {} \;
   echo 'you-get(){ python3 /opt/you-get-master/you-get $*; }' >> /home/${u_name}/.bashrc
+fi
+
+# TeamViewer QuickSupport
+# More: http://www.teamviewer.com/en/download/linux/ 
+if [ ! -x "/opt/teamviewerqs/tv_bin/script/teamviewer" ]; then
+	wget http://download.teamviewer.com/download/teamviewer_qs.tar.gz
+	tar -zxf teamviewer*.tar.gz -C /opt
+	cat > /usr/share/applications/TeamViewerQS.desktop <<- 'END'
+	[Desktop Entry]
+	Encoding=UTF-8
+	Name=TeamViewerQS 11
+	Comment=TeamViewer Remote Control Application
+	Exec=/opt/teamviewerqs/tv_bin/script/teamviewer
+	Icon=/opt/teamviewerqs/tv_bin/desktop/teamviewer.png
+	Type=Application
+	Categories=Network;
+	#Categories=Network;RemoteAccess;
+	END
 fi
 
 # youtube-dl
