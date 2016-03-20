@@ -1,7 +1,7 @@
 #!/bin/bash
 #Author: kashu
 #My Website: https://kashu.org
-#Date: 2016-03-10
+#Date: 2016-03-21
 #Filename: Xubuntu_install.sh
 #Description: Things I must to do after fresh installation of Xubuntu 14.04.x amd64.
 
@@ -183,9 +183,6 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	alias dstat='dstat -cdnmpy -N eth0 -D total,sda,sdb --top-bio-adv'
 	alias calc='gnome-calculator &'
 	alias apt-get='/usr/bin/apt-fast'
-	alias chrome='/usr/bin/chromium-browser &'
-	alias goagent='echo 123 | sudo -S python /opt/goagent-3.0/local/proxy.py'
-	#alias go='sudo python /opt/goagent-goagent-03e2040/local/proxy.py &'
 	alias TTY='sudo miniterm.py -p /dev/ttyUSB0 --lf'
 
 	# append to the history file, don't overwrite it
@@ -236,8 +233,7 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	nicemount(){ (echo "DEVICE PATH TYPE OPTIONS" && mount | awk '$2=$4="";1') | column -t; }
 
 	# 4. Currency Converter. Usage: currency 1 usd cny
-	currency(){ curl -s -x http://localhost:8787 "https://www.google.com/finance/converter?a=$1&from=$2&to=$3" | sed '/res/!d;s/<[^>]*>//g'; }
-	#currency(){ curl -s "https://www.google.com/finance/converter?a=$1&from=$2&to=$3" | sed '/res/!d;s/<[^>]*>//g'; }
+	currency(){ curl -s "https://www.google.com/finance/converter?a=$1&from=$2&to=$3" | sed '/res/!d;s/<[^>]*>//g'; }
 
 	# 5. Update specific PPA. Usage: ppaupdate ppa:plushuang-tw/uget-stable
 	ppaupdate(){ sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/$1" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"; }
@@ -513,10 +509,10 @@ apt-fast dist-upgrade -y
 
 # 4. Install apps.     ## Stage 1 ##
 ############################################################################
-#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar
+#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit
 #docker.io qemu-system
 echo -e "\n\n# Install apps.     ## Stage 1 ##" >> $LOG
-for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar; do
+for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit; do
   dpkg -s ${a} &> /dev/null || { 
   apt-fast install -y ${a} || echo "Software: ${a} install failed" >> ${LOG}
   }
@@ -733,7 +729,7 @@ if [ ! -x "/usr/bin/lantern" ]; then
 		Type=Application
 		Categories=Network
 		Name=Lantern
-		Exec=nohup lantern -addr 0.0.0.0:8787 -startup=true -role=client &> /dev/null &
+		Exec=nohup lantern -addr 0.0.0.0:8787 -startup=true &> /dev/null &
 		Icon=lantern
 		Terminal=false
 		END
@@ -742,7 +738,7 @@ fi
 # Start Lantern
 if [ -x "/usr/lib/lantern/lantern.sh" ]; then
   if ! pgrep lantern; then
-    nohup /home/${u_name}/.lantern/bin/lantern -addr 0.0.0.0:8787 -startup=true -role=client &> /dev/null &
+    nohup /home/${u_name}/.lantern/bin/lantern -addr 0.0.0.0:8787 -startup=true &> /dev/null &
   fi
 fi
 
@@ -1009,7 +1005,7 @@ if [ ! -s "/home/${u_name}/.config/autostart/lantern.desktop" ]; then
 	Type=Application
 	Name=Lantern
 	Comment=Lantern
-	Exec=/usr/bin/nohup sh -c "/bin/sleep 7 && /usr/lib/lantern/lantern.sh -addr 0.0.0.0:8787 -startup=true -role=client &> /dev/null"
+	Exec=/usr/bin/nohup sh -c "/bin/sleep 7 && /usr/lib/lantern/lantern.sh -addr 0.0.0.0:8787 -startup=true &> /dev/null"
 	OnlyShowIn=XFCE;
 	StartupNotify=false
 	Terminal=false
