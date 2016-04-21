@@ -1,8 +1,8 @@
 #!/bin/bash
 #Author: kashu
 #My Website: https://kashu.org
-#Date: 2016-03-21
-#Filename: Xubuntu_install.sh
+#Date: 2016-01-21
+#Filename: Xubuntu_installation.sh
 #Description: Things I must to do after fresh installation of Xubuntu 14.04.x amd64.
 
 #This shell script will install many programs and do some very IMPORTANT settings.
@@ -181,9 +181,12 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	alias ishadowsocks='wget -q html http://ishadowsocks.com -O - | grep 密码: | cut -d: -f2 | cut -d\< -f1'
 	#alias dstat='echo 123 | sudo -S dstat -lcdnmspyt -N eth0 -D total,sda,sdb'
 	alias dstat='dstat -cdnmpy -N eth0 -D total,sda,sdb --top-bio-adv'
+	alias rdesktopsh='rdesktop -u administrator -p xxx -r clipboard:CLIPBOARD -g 1024x700 -T 2xx.6x.5.2 -r sound:off -N -P -m -E -0 -a 15 1.1.1.1:55555'
 	alias calc='gnome-calculator &'
-	alias apt-get='/usr/bin/apt-fast'
+	#alias apt-get='/usr/bin/apt-fast'
 	alias TTY='sudo miniterm.py -p /dev/ttyUSB0 --lf'
+	alias chromium-browser='nohup chromium-browser --show-component-extension-options --disable-component-extensions-with-background-pages &> /dev/null &'
+	alias ss='echo 123 | sudo -S ss -tunap | less'
 
 	# append to the history file, don't overwrite it
 	shopt -s histappend
@@ -509,10 +512,10 @@ apt-fast dist-upgrade -y
 
 # 4. Install apps.     ## Stage 1 ##
 ############################################################################
-#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit
+#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit lm-sensors redshift redshift-gtk
 #docker.io qemu-system
 echo -e "\n\n# Install apps.     ## Stage 1 ##" >> $LOG
-for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit; do
+for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit lm-sensors redshift redshift-gtk; do
   dpkg -s ${a} &> /dev/null || { 
   apt-fast install -y ${a} || echo "Software: ${a} install failed" >> ${LOG}
   }
@@ -554,6 +557,8 @@ fi
 #add-apt-repository -y ppa:zanchey/asciinema
 #add-apt-repository -y ppa:caffeine-developers/ppa
 #add-apt-repository -y ppa:indicator-multiload/stable-daily
+#add-apt-repository -y ppa:jfi/ppa
+#add-apt-repository -y ppa:anton+/dnscrypt
 
 #add-apt-repository -y ppa:notepadqq-team/notepadqq
 #apt-fast update
@@ -660,7 +665,7 @@ fi
 #apt-fast -f install -y
 
 echo -e "\n\n# 5.1 Add PPAs." >> $LOG
-for b in ppa:fcitx-team/nightly ppa:linrunner/tlp ppa:pi-rho/security ppa:nilarimogard/webupd8 ppa:ubuntu-wine/ppa ppa:coolwanglu/pdf2htmlex ppa:diodon-team/stable ppa:gezakovacs/ppa ppa:mc3man/trusty-media ppa:lzh9102/qwinff ppa:maarten-baert/simplescreenrecorder ppa:otto-kesselgulasch/gimp ppa:plushuang-tw/uget-stable ppa:stebbins/handbrake-releases ppa:team-xbmc/ppa ppa:webupd8team/y-ppa-manager ppa:wseverin/ppa ppa:thomas-schiex/blender ppa:pinta-maintainers/pinta-stable ppa:zanchey/asciinema ppa:caffeine-developers/ppa ppa:indicator-multiload/stable-daily; do
+for b in ppa:fcitx-team/nightly ppa:linrunner/tlp ppa:pi-rho/security ppa:nilarimogard/webupd8 ppa:ubuntu-wine/ppa ppa:coolwanglu/pdf2htmlex ppa:diodon-team/stable ppa:gezakovacs/ppa ppa:mc3man/trusty-media ppa:lzh9102/qwinff ppa:maarten-baert/simplescreenrecorder ppa:otto-kesselgulasch/gimp ppa:plushuang-tw/uget-stable ppa:stebbins/handbrake-releases ppa:team-xbmc/ppa ppa:webupd8team/y-ppa-manager ppa:wseverin/ppa ppa:thomas-schiex/blender ppa:pinta-maintainers/pinta-stable ppa:zanchey/asciinema ppa:caffeine-developers/ppa ppa:indicator-multiload/stable-daily ppa:jfi/ppa ppa:anton+/dnscrypt; do
   B="$(echo ${b} | awk -F'[:|/]' '{print $2}')"
   if ! `ls -1 /etc/apt/sources.list.d/ | grep -sq ${B}`; then
     add-apt-repository -y ${b} || echo "PPA: ${b} add failed" >> ${LOG}
@@ -687,7 +692,7 @@ else
   apt-fast update
 fi
 
-for c in fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc vlc-plugin-libde265 ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm; do
+for c in fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc vlc-plugin-libde265 ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm psensor dnscrypt-proxy; do
   dpkg -s ${c} &> /dev/null || {
   apt-fast -y install ${c} || echo "Software: ${c} install failed" >> ${LOG}
   }
@@ -768,6 +773,13 @@ if [ ! -x "/usr/bin/bcloud-gui" ]; then
   wget https://github.com/LiuLang/bcloud-packages/raw/master/bcloud_3.8.2-1_all.deb
   dpkg -i bcloud*.deb
   apt-fast -f install -y
+fi
+
+# XnViewMP
+# More: http://www.xnview.com/en/xnviewmp/
+if [ ! -x "/usr/bin/xnview" ]; then
+  wget http://download.xnview.com/XnViewMP-linux-x64.deb
+  dpkg -i XnViewMP-linux-x64.deb
 fi
 
 # you-get
