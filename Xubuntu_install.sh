@@ -1,8 +1,8 @@
 #!/bin/bash
 #Author: kashu
 #My Website: https://kashu.org
-#Date: 2016-01-21
-#Filename: Xubuntu_installation.sh
+#Date: 2016-04-22
+#Filename: Xubuntu_install.sh
 #Description: Things I must to do after fresh installation of Xubuntu 14.04.x amd64.
 
 #This shell script will install many programs and do some very IMPORTANT settings.
