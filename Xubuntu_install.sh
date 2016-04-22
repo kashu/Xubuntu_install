@@ -763,7 +763,7 @@ if [ ! -x "/usr/bin/krop" ]; then
   apt-get -y -f install
 fi
 
-# SpeedTest Python Script（A network speed test script）
+# SpeedTest Python Script (A network speed test script)
 wget -O - https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest_cli.py > /home/${u_name}/bin/speedtest_cli.py
 chmod +x /home/${u_name}/bin/speedtest_cli.py &> /dev/null
 
@@ -780,6 +780,30 @@ fi
 if [ ! -x "/usr/bin/xnview" ]; then
   wget http://download.xnview.com/XnViewMP-linux-x64.deb
   dpkg -i XnViewMP-linux-x64.deb
+fi
+
+# WebP (Precompiled WebP utilities and library for Linux)
+if [ ! -x "/opt/libwebp-0.5.0-linux-x86-64/bin/cwebp" ]; then
+  wget https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-0.5.0-linux-x86-64.tar.gz
+  tar -zxf libwebp-0.5.0-linux-x86-64.tar.gz
+  cp -r libwebp-0.5.0-linux-x86-64/ /opt
+  echo 'export PATH="/opt/libwebp-0.5.0-linux-x86-64/bin:$PATH"' | sudo tee -a ~/.bashrc
+  export PATH="/opt/libwebp-0.5.0-linux-x86-64/bin:$PATH"
+fi
+
+# megatools (command line client application for Mega)
+# More: https://github.com/megous/megatools
+if [ ! -x "/opt/megatools/bin/megadl" ]; then
+  apt-get install build-essential libglib2.0-dev libssl-dev libcurl4-openssl-dev libgirepository1.0-dev -y
+  wget https://megatools.megous.com/builds/megatools-1.9.97.tar.gz
+  tar -zxf megatools-1.9.97.tar.gz
+  cd megatools-1.9.97
+  ./configure --prefix=/opt/megatools/
+  make && sudo make install
+  cd
+  echo 'MANDATORY_MANPATH /opt/megatools/share/man' | sudo tee -a /etc/manpath.config
+  echo 'export PATH="/opt/megatools/bin:$PATH"' | sudo tee -a ~/.bashrc
+  export PATH="/opt/megatools/bin:$PATH"
 fi
 
 # you-get
