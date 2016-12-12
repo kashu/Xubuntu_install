@@ -10,22 +10,22 @@
 5. 自动解决英文语言系统中的vim无法完美显示中文的问题
 6. 自动生成~/.conkyrc配置文件
 7. 自动删除系统中不需要的应用程序（蓝牙支持我也删了，因为我笔记本没蓝牙 :P  。 注，如果你要用蓝牙，那就把blueman删除）
-printer-driver* abiword* gnumeric* thunderbird xfce4-dict xchat* pidgin* xfburn gnome-mines gnome-sudoku parole gmusicbrowser transmission* simple-scan blueman
+abiword* gnumeric* thunderbird xfce4-dict xchat* pidgin* xfburn gnome-mines gnome-sudoku parole gmusicbrowser simple-scan blueman
 8. 安装apt-fast，大幅提升软件安装、系统更新、升级的速度，提高效率节约时间
 9. 启用Canonical Partners的软件源（系统自动默认是未启用的）
 11. 更新、升级整个系统
 12. 自动检测以下软件是否已安装，如果没安装，则自动安装（注：这里安装了KVM，我自己是碰不到不支持64位指令集的CPU了。没关系，装不了就跳过）：
-vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common
-13. 生成/etc/proxychains.conf代理配置文件，默认使用http://127.0.0.1:8787（嗯，Lantern），给后续软件的安装提供方便
+vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit lm-sensors redshift redshift-gtk iucode-tool intel-microcode iozone3 zsync shntool flac cuetools wavpack dos2unix mediainfo sshfs gnome-subtitles
+13. 生成/etc/proxychains.conf代理配置文件，默认使用hxxp://127.0.0.1:8787（嗯，Lantern），给后续软件的安装提供方便
 14. 自动检测以下PPA是否已添加，如果没添加，则自动添加（如果你的网络被GFW或ISP给fuck了，那可能会有一两个PPA添加不成功，相应的软件可能无法安装，这个也不好说，即使被fuck了，可能也能正常安装。别管那么多，后面会自动跳墙的）：
-ppa:fcitx-team/nightly ppa:linrunner/tlp ppa:pi-rho/security ppa:nilarimogard/webupd8 ppa:ubuntu-wine/ppa ppa:coolwanglu/pdf2htmlex ppa:diodon-team/stable ppa:gezakovacs/ppa ppa:mc3man/trusty-media ppa:lzh9102/qwinff ppa:maarten-baert/simplescreenrecorder ppa:otto-kesselgulasch/gimp ppa:plushuang-tw/uget-stable ppa:stebbins/handbrake-releases ppa:team-xbmc/ppa ppa:webupd8team/y-ppa-manager ppa:wseverin/ppa ppa:thomas-schiex/blender ppa:pinta-maintainers/pinta-stable ppa:zanchey/asciinema ppa:caffeine-developers/ppa ppa:indicator-multiload/stable-daily
+ppa:linrunner/tlp ppa:pi-rho/security ppa:nilarimogard/webupd8 ppa:ubuntu-wine/ppa ppa:coolwanglu/pdf2htmlex ppa:gezakovacs/ppa ppa:mc3man/trusty-media ppa:lzh9102/qwinff ppa:maarten-baert/simplescreenrecorder ppa:otto-kesselgulasch/gimp ppa:plushuang-tw/uget-stable ppa:stebbins/handbrake-releases ppa:team-xbmc/ppa ppa:webupd8team/y-ppa-manager ppa:wseverin/ppa ppa:thomas-schiex/blender ppa:pinta-maintainers/pinta-stable ppa:zanchey/asciinema ppa:caffeine-developers/ppa ppa:indicator-multiload/stable-daily
 15. 自动检测并安装Nginx
 16. 自动检测以下软件是否已安装，如果没安装，则自动安装：
-fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm
+fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex unetbootin vlc vlc-plugin-libde265 ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm psensor dnscrypt-proxy
 17. 升级gimp，把旧版本升级成新版本
 18. 自动更改uGet的配置文件，让它默认使用aria2c………
-19. 安装PAC Manager, Lantern, Master PDF Editor, krop, speedtest_cli.py, bcloud, you-get, youtube-dl, SoundWire, 优化Lantern的启动设置并自动启动Lantern
-20. 安装xubuntu-restricted-extras, wireshark, wine1.8, chromium-browser, pepperflashplugin-nonfree, MariaDB 10.0， VirtualBox
+19. 安装PAC Manager, Lantern, Master PDF Editor, krop, speedtest_cli.py, XnViewMP, WebP, you-get, TeamViewer QuickSupport, youtube-dl, 优化Lantern的启动设置并自动启动Lantern
+20. 安装xubuntu-restricted-extras, wireshark, wine1.8, chromium-browser google-chrome-stable, pepperflashplugin-nonfree, MariaDB 10.0， VirtualBox
 21. 自动添加用户的开机自启动项，让它们在合理的时间里自动起来（避免所有自启动程序挤在一块启动，这会导致用户登陆慢或开机慢的体验。这里我分散了启动时间……）：hddtemp， conky， caffeine， lantern， indicator-multiload（还有一些，只能让用户根据自己的需要来设置了）
 22. 把nginx mysql nmbd smbd samba rpcbind hddtemp speech-dispatcher saned cups cups-browsed tftpd-hpa hostapd php5-fpm全部设置为开机不自动启动，用户需要用的时候可自己手动启动。
 23. 最后，显示安装的日志内容在当前屏幕上： /tmp/installation_`date +%Y.%m.%d_%T`.log
@@ -38,3 +38,5 @@ fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine p
 脚本看着用点乱，其实整体结构还是挺清晰的，几大块的功能所对应的代码都有组织有次序的堆放在相应的区块中。可以快速地修改，添加，删除。
 
 ### 如果脚本中有什么错误或遗漏的地方，或者你有更好的想法、绝招，请给我留言，我会不断完善的，谢谢！
+
+最近更新：12.13.2016
