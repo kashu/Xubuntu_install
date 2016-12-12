@@ -1,9 +1,9 @@
 #!/bin/bash
 #Author: kashu
 #My Website: https://kashu.org
-#Date: 2016-04-22
+#Date: 2016-12-12
 #Filename: Xubuntu_install.sh
-#Description: Things I must to do after fresh installation of Xubuntu 14.04.x amd64.
+#Description: Things I must to do after fresh installation of Xubuntu 14.04.x 64-bit.
 
 #This shell script will install many programs and do some very IMPORTANT settings.
 #Some applications you may not want to install, so you need to modify this script to meet your needs. 
@@ -87,7 +87,7 @@ echo "START: `date +%Y.%m.%d_%T`" > "$LOG"
 # http://www.binarytides.com/disable-ipv6-ubuntu/
 if ! `grep -sqm1 "^vm.swappiness" /etc/sysctl.conf`; then
 	cat >> /etc/sysctl.conf <<- 'SYSCTL'
-	vm.swappiness=0
+	vm.swappiness=1
 	
 	# IPv6 disabled
 	net.ipv6.conf.all.disable_ipv6 = 1
@@ -128,6 +128,20 @@ fi
 grep -sqm1 "^tmpfs /tmp" /etc/fstab ||\
 echo "tmpfs /tmp tmpfs defaults,sync,noatime,nosuid,nodev,mode=1777,size=75% 0 0" >> /etc/fstab
 
+# Enable zswap and lz4 compression
+if ! grep -sq "lz4" /etc/initramfs-tools/modules; then 
+  echo "lz4 lz4_compress" | tee -a /etc/initramfs-tools/modules
+  update-initramfs -u -k all
+fi
+if ! grep -sq "zswap.enabled=1" /etc/default/grub; then 
+  sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT/#GRUB_CMDLINE_LINUX_DEFAULT/g' /etc/default/grub
+  echo 'GRUB_CMDLINE_LINUX_DEFAULT="profile zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=35"' >> /etc/default/grub
+  update-grub
+fi
+#GRUB_CMDLINE_LINUX="ipv6.disable=1"
+#sudo update-grub
+#sudo reboot
+
 # Disable Apport at startup (More: http://howtoubuntu.org/how-to-disable-stop-uninstall-apport-error-reporting-in-ubuntu)
 sed -i 's/enabled=1/enabled=0/g' /etc/default/apport
 
@@ -138,8 +152,9 @@ if ! grep -sq ChromiumCacheDir /etc/rc.local; then
 	#Change the screen brightness
 	#echo 9 > /sys/class/backlight/acpi_video0/brightness
 
-	mkdir -p /tmp/ChromiumCacheDir/firefox /tmp/ChromiumCacheDir/chrome /tmp/linux
-	#/bin/chown kashu.kashu -R /tmp/ChromiumCacheDir/ /tmp/linux
+	mkdir -p /tmp/ChromeCacheDir/temp_cache /tmp/ChromiumCacheDir/chromium /tmp/ChromiumCacheDir/firefox /tmp/ChromiumCacheDir/Application\ Cache /tmp/ChromiumCacheDir/Extension\ State /tmp/ChromiumCacheDir/GPUCache /tmp/ChromiumCacheDir/Pepper\ Data /tmp/ChromiumCacheDir/Session\ Storage /tmp/ChromiumCacheDir/ShaderCache /tmp/ChromiumCacheDir/AssetCache /tmp/linux /tmp/.upstart /tmp/.thumbnails/large /tmp/.thumbnails/normal /tmp/.vlc /tmp/.rdesktop /tmp/.fcitx
+	#cp -a /home/kashu/.config/google-chrome.bak/* /tmp/ChromeCacheDir/
+	/bin/chown kashu.kashu -R /tmp/ChromeCacheDir/ /tmp/ChromiumCacheDir/ /tmp/linux/ /tmp/.upstart/ /tmp/.thumbnails/ /tmp/.vlc/ /tmp/.rdesktop/ /tmp/.fcitx/
 
 	# Disable Wi-Fi at startup
 	#/usr/bin/nmcli nm wifi off
@@ -147,10 +162,27 @@ if ! grep -sq ChromiumCacheDir /etc/rc.local; then
 	exit 0
 	END
 fi
-#Move the Chromium cache directory to /tmp/ChromiumCacheDir
-mkdir -p /home/${u_name}/.cache/chromium/ /tmp/ChromiumCacheDir/firefox /tmp/ChromiumCacheDir/chrome /tmp/linux
-ln -s /home/${u_name}/.cache/chromium/Default /tmp/ChromiumCacheDir/
-chown -R ${u_name}.${u_name} /home/${u_name}/.cache/chromium/ /tmp/ChromiumCacheDir/ /tmp/linux
+sed -i "s/kashu.kashu/${u_name}.${u_name}/g" /etc/rc.local
+
+# ~/.bash_logout
+if ! grep -sq ChromeCacheDir /home/${u_name}/.bash_logout; then
+  echo '/usr/bin/rsync -a --exclude=/tmp/ChromeCacheDir/temp_cache/ /tmp/ChromeCacheDir/ /home/kashu/.config/google-chrome.bak/' >> /home/${u_name}/.bash_logout
+fi
+
+#Move Chromium/Chrome cache directory to /tmp/ChromiumCacheDir
+mkdir -p /home/${u_name}/.cache/chromium /tmp/ChromiumCacheDir/firefox /tmp/ChromiumCacheDir/chrome /tmp/ChromeCacheDir/temp_cache /tmp/linux /tmp/.thumbnails /tmp/.rdesktop /tmp/.upstart /tmp/.vlc /tmp/.fcitx /home/${u_name}/.config/fcitx/table
+ln -s /tmp/ChromiumCacheDir/ /home/${u_name}/.cache/chromium/Default 
+ln -s /tmp/ChromeCacheDir/temp_cache/ /home/${u_name}/.cache/google-chrome
+ln -s /tmp/ChromeCacheDir/ /home/${u_name}/.config/google-chrome
+ln -s /tmp/.rdesktop/ /home/${u_name}/.rdesktop
+rm -rf /home/${u_name}/.cache/upstart
+ln -s /tmp/.upstart/ /home/${u_name}/.cache/upstart
+rm -rf /home/${u_name}/.thumbnails
+ln -s /tmp/.thumbnails/ /home/${u_name}/.thumbnails
+ln -s /tmp/.vlc/ /home/${u_name}/.cache/vlc
+ln -s /tmp/.fcitx/ /home/${u_name}/.config/fcitx/table
+ln -s /dev/null /home/${u_name}/nohup.out
+chown -R ${u_name}.${u_name} /home/${u_name}/.cache/chromium/ /tmp/ChromiumCacheDir/ /tmp/ChromeCacheDir/ /tmp/linux/ /tmp/.rdesktop/ /tmp/.upstart/ /tmp/.vlc/ /tmp/.fcitx/ /tmp/.thumbnails/
 #rmdir /var/lib/libvirt/images
 #ln -s /var/lib/libvirt/images /tmp/linux
 
@@ -174,18 +206,20 @@ if ! `grep -sqm1 "My alias" /home/${u_name}/.bashrc`; then
 	# My alias
 	alias ..="cd .."        #go to parent dir
 	alias ...="cd ../.."    #go to grandparent dir
+	alias scp='scp -c aes192-cbc -o "MACs umac-64@openssh.com"'
 	alias hd='od -Ax -tx1z -v'  # what most people want from od (hexdump)
 	#alias aria2c='aria2c -c -d /tmp -t 300 -m 30 -s10 -k5M -x10'
 	alias cleancache='echo 123 | sudo -S sync && sleep 3 && sudo sysctl -w vm.drop_caches=1'
 	alias cleanswap='echo 123 | sudo -S swapoff -a && sudo sh -c "sync && sleep 3 && sysctl -w vm.drop_caches=1" && sudo swapon -a'
 	alias ishadowsocks='wget -q html http://ishadowsocks.com -O - | grep 密码: | cut -d: -f2 | cut -d\< -f1'
 	#alias dstat='echo 123 | sudo -S dstat -lcdnmspyt -N eth0 -D total,sda,sdb'
-	alias dstat='dstat -cdnmpy -N eth0 -D total,sda,sdb --top-bio-adv'
-	alias rdesktopsh='rdesktop -u administrator -p xxx -r clipboard:CLIPBOARD -g 1024x700 -T 2xx.6x.5.2 -r sound:off -N -P -m -E -0 -a 15 1.1.1.1:55555'
+	alias dstat='dstat -lcdnmspyt -N eth0,wlan0 -D total,sda,sdb --top-bio-adv'
+	alias rdesktopsh='rdesktop -u administrator -p amttgroup -r clipboard:CLIPBOARD -g 75% -T 2xx.6x.56.206 -r sound:off -N -P -m -E -0 -a 15 222.66.56.206:51181'
 	alias calc='gnome-calculator &'
 	#alias apt-get='/usr/bin/apt-fast'
 	alias TTY='sudo miniterm.py -p /dev/ttyUSB0 --lf'
 	alias chromium-browser='nohup chromium-browser --show-component-extension-options --disable-component-extensions-with-background-pages &> /dev/null &'
+	alias chrome='nohup /usr/bin/google-chrome-stable %U --show-component-extension-options --disable-component-extensions-with-background-pages --user-agent="Mozilla/5.0 (X11; Xubuntu 14.04.4 LTS) AppleWebKit/537.36 (KHTML, like Gecko) Xubuntu Chromium/66.0.2623.87 Chrome/66.0.2623.87 Safari/537.36" &> /dev/null &'
 	alias ss='echo 123 | sudo -S ss -tunap | less'
 
 	# append to the history file, don't overwrite it
@@ -460,7 +494,7 @@ fi
 
 # 2. Uninstall some unnecessary applications (blueman, 蓝牙支持也会删除，因为我笔记本没蓝牙 :P )
 ############################################################################
-apt-get -y autoremove printer-driver* abiword* gnumeric* thunderbird xfce4-dict xchat* pidgin* xfburn gnome-mines gnome-sudoku parole gmusicbrowser transmission* simple-scan blueman
+apt-get -y autoremove abiword* gnumeric* thunderbird xfce4-dict xchat* pidgin* xfburn gnome-mines gnome-sudoku parole gmusicbrowser simple-scan blueman
 
 
 # 3. Install apt-fast (IMPORTANT)
@@ -512,17 +546,17 @@ apt-fast dist-upgrade -y
 
 # 4. Install apps.     ## Stage 1 ##
 ############################################################################
-#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit lm-sensors redshift redshift-gtk
+#apt-fast install vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff xubuntu-restricted-extras shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit lm-sensors redshift redshift-gtk iucode-tool intel-microcode iozone3 zsync shntool flac cuetools wavpack dos2unix mediainfo sshfs gnome-subtitles
 #docker.io qemu-system
 echo -e "\n\n# Install apps.     ## Stage 1 ##" >> $LOG
-for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit lm-sensors redshift redshift-gtk; do
+for a in vim gedit ssh conky openssh-server dstat htop curl iotop iptraf nethogs sysv-rc-conf rdesktop shutter p7zip-full p7zip-rar preload meld ccze lynx html2text gparted optipng parallel proxychains wavemon sox audacity convmv xchm hddtemp hostapd isc-dhcp-server bum byzanz sysstat enca filezilla ntpdate exfat-fuse exfat-utils dconf-tools pv tftpd-hpa tftp-hpa dsniff shellcheck git virt-manager virt-viewer qemu-kvm lxc python-setuptools python3-setuptools remmina cmake gksu font-manager gnome-font-viewer samba cifs-utils nfs-common libnss3-tools trickle nrg2iso rar unrar cpulimit lm-sensors redshift redshift-gtk iucode-tool intel-microcode iozone3 zsync shntool flac cuetools wavpack dos2unix mediainfo sshfs gnome-subtitles; do
   dpkg -s ${a} &> /dev/null || { 
   apt-fast install -y ${a} || echo "Software: ${a} install failed" >> ${LOG}
   }
 done
 apt-get clean
 
-# For gedit Chinese character support
+# Enable gedit Chinese character supports
 gsettings set org.gnome.gedit.preferences.encodings auto-detected "['UTF-8','GB18030','GB2312','GBK','BIG5','CURRENT','UTF-16']"
 
 if ! `grep -sq ^http /etc/proxychains.conf`; then
@@ -665,7 +699,7 @@ fi
 #apt-fast -f install -y
 
 echo -e "\n\n# 5.1 Add PPAs." >> $LOG
-for b in ppa:fcitx-team/nightly ppa:linrunner/tlp ppa:pi-rho/security ppa:nilarimogard/webupd8 ppa:ubuntu-wine/ppa ppa:coolwanglu/pdf2htmlex ppa:diodon-team/stable ppa:gezakovacs/ppa ppa:mc3man/trusty-media ppa:lzh9102/qwinff ppa:maarten-baert/simplescreenrecorder ppa:otto-kesselgulasch/gimp ppa:plushuang-tw/uget-stable ppa:stebbins/handbrake-releases ppa:team-xbmc/ppa ppa:webupd8team/y-ppa-manager ppa:wseverin/ppa ppa:thomas-schiex/blender ppa:pinta-maintainers/pinta-stable ppa:zanchey/asciinema ppa:caffeine-developers/ppa ppa:indicator-multiload/stable-daily ppa:jfi/ppa ppa:anton+/dnscrypt; do
+for b in ppa:linrunner/tlp ppa:pi-rho/security ppa:nilarimogard/webupd8 ppa:ubuntu-wine/ppa ppa:coolwanglu/pdf2htmlex ppa:gezakovacs/ppa ppa:mc3man/trusty-media ppa:lzh9102/qwinff ppa:maarten-baert/simplescreenrecorder ppa:otto-kesselgulasch/gimp ppa:plushuang-tw/uget-stable ppa:stebbins/handbrake-releases ppa:team-xbmc/ppa ppa:webupd8team/y-ppa-manager ppa:wseverin/ppa ppa:thomas-schiex/blender ppa:pinta-maintainers/pinta-stable ppa:zanchey/asciinema ppa:caffeine-developers/ppa ppa:indicator-multiload/stable-daily ppa:jfi/ppa ppa:anton+/dnscrypt; do
   B="$(echo ${b} | awk -F'[:|/]' '{print $2}')"
   if ! `ls -1 /etc/apt/sources.list.d/ | grep -sq ${B}`; then
     add-apt-repository -y ${b} || echo "PPA: ${b} add failed" >> ${LOG}
@@ -692,13 +726,14 @@ else
   apt-fast update
 fi
 
-for c in fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex diodon unetbootin vlc vlc-plugin-libde265 ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm psensor dnscrypt-proxy; do
+for c in fcitx-table-wbpy tlp tlp-rdw nmap hydra audacious indicator-multiload caffeine pdf2htmlex unetbootin vlc vlc-plugin-libde265 ffmpeg qwinff simplescreenrecorder uget handbrake-gtk kodi y-ppa-manager linssid blender pinta ppa-purge asciinema php5-fpm psensor dnscrypt-proxy; do
   dpkg -s ${c} &> /dev/null || {
   apt-fast -y install ${c} || echo "Software: ${c} install failed" >> ${LOG}
   }
 done
 apt-get clean
 
+# More: https://github.com/taxigps/xbmc-addons-chinese
 if [ -x "/usr/bin/kodi" ]; then
 	echo "For Kodi(XBMC): wget https://github.com/taxigps/xbmc-addons-chinese/raw/master/repo/\
 	repository.xbmc-addons-chinese/repository.xbmc-addons-chinese-1.2.0.zip" >> ${LOG}
@@ -706,7 +741,7 @@ fi
 
 apt-fast install --only-upgrade gimp -y
 
-#导入uGet的配置: --enable-rpc=true -D --check-certificate=false --disable-ipv6=true
+#更改uGet的配置: --enable-rpc=true -D --check-certificate=false --disable-ipv6=true
 if [ -s "/home/${u_name}/.config/uGet/Setting.json" ]; then
   sed -i 's/[[:space:]]*"arguments.*/\t\t"arguments": "\-c \-\-enable\-rpc\=true \-D \-\-check\-certificate\=false \-\-disable\-ipv6\=true \-\-disk\-cache\=128M \-j 10",/g' /home/${u_name}/.config/uGet/Setting.json
 fi
@@ -716,7 +751,8 @@ fi
 ############################################################################
 echo -e "\n\n# 5.3 Install APPs.     ## Stage 3 ## " >> $LOG
 # PAC Manager (Perl Auto Connector)
-# More: http://sourceforge.net/projects/pacmanager/files/pac-4.0/
+# More: https://sites.google.com/site/davidtv/
+# More: https://sourceforge.net/projects/pacmanager/files/pac-4.0/
 if [ ! -x "/usr/bin/pac" ]; then
   wget http://netix.dl.sourceforge.net/project/pacmanager/pac-4.0/pac-4.5.5.7-all.deb
   dpkg -i ./pac*.deb
@@ -734,7 +770,7 @@ if [ ! -x "/usr/bin/lantern" ]; then
 		Type=Application
 		Categories=Network
 		Name=Lantern
-		Exec=nohup lantern -addr 0.0.0.0:8787 -startup=true &> /dev/null &
+		Exec=lantern -addr 0.0.0.0:8787 -startup
 		Icon=lantern
 		Terminal=false
 		END
@@ -743,37 +779,39 @@ fi
 # Start Lantern
 if [ -x "/usr/lib/lantern/lantern.sh" ]; then
   if ! pgrep lantern; then
-    nohup /home/${u_name}/.lantern/bin/lantern -addr 0.0.0.0:8787 -startup=true &> /dev/null &
+    nohup /home/${u_name}/.lantern/bin/lantern -addr 0.0.0.0:8787 -startup &> /dev/null &
   fi
 fi
 
 # Master PDF Editor（PDF编辑器）
 # More: http://code-industry.net/free-pdf-editor.php
 if [ ! -x "/usr/bin/masterpdfeditor3" ]; then
-  #aria2c -c http://get.code-industry.net/public/master-pdf-editor-3.5.81_i386.deb
-  aria2c -c http://get.code-industry.net/public/master-pdf-editor-3.5.81_amd64.deb
+  #aria2c -c http://get.code-industry.net/public/master-pdf-editor-3.7.10_i386.deb
+  aria2c -c http://get.code-industry.net/public/master-pdf-editor-3.7.10_amd64.deb
+  apt-fast install libqt5printsupport5 -y
   dpkg -i ./master-pdf-editor*.deb
 fi
 
 # krop（PDF裁剪神器）
 # More: http://arminstraub.com/software/krop
 if [ ! -x "/usr/bin/krop" ]; then
-  wget http://arminstraub.com/downloads/krop/krop_0.4.9-1_all.deb
+  wget http://arminstraub.com/downloads/krop/krop_0.4.11-1_all.deb
   dpkg -i ./krop*.deb
   apt-get -y -f install
 fi
 
-# SpeedTest Python Script (A network speed test script)
+# SpeedTest Python Script（A network speed test script）
+mkdir /home/${u_name}/bin
 wget -O - https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest_cli.py > /home/${u_name}/bin/speedtest_cli.py
 chmod +x /home/${u_name}/bin/speedtest_cli.py &> /dev/null
 
-# 百度网盘
+# 百度网盘（项目好像已停止开发，软件无法使用）
 # More: https://github.com/LiuLang/bcloud-packages
-if [ ! -x "/usr/bin/bcloud-gui" ]; then
-  wget https://github.com/LiuLang/bcloud-packages/raw/master/bcloud_3.8.2-1_all.deb
-  dpkg -i bcloud*.deb
-  apt-fast -f install -y
-fi
+#if [ ! -x "/usr/bin/bcloud-gui" ]; then
+#  wget https://github.com/LiuLang/bcloud-packages/raw/master/bcloud_3.8.2-1_all.deb
+#  dpkg -i bcloud*.deb
+#  apt-fast -f install -y
+#fi
 
 # XnViewMP
 # More: http://www.xnview.com/en/xnviewmp/
@@ -781,45 +819,51 @@ if [ ! -x "/usr/bin/xnview" ]; then
   wget http://download.xnview.com/XnViewMP-linux-x64.deb
   dpkg -i XnViewMP-linux-x64.deb
 fi
+apt-get clean
 
 # WebP (Precompiled WebP utilities and library for Linux)
-if [ ! -x "/opt/libwebp-0.5.0-linux-x86-64/bin/cwebp" ]; then
-  wget https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-0.5.0-linux-x86-64.tar.gz
-  tar -zxf libwebp-0.5.0-linux-x86-64.tar.gz
-  cp -r libwebp-0.5.0-linux-x86-64/ /opt
-  echo 'export PATH="/opt/libwebp-0.5.0-linux-x86-64/bin:$PATH"' | sudo tee -a ~/.bashrc
-  export PATH="/opt/libwebp-0.5.0-linux-x86-64/bin:$PATH"
+# More: https://developers.google.com/speed/webp/download
+# More: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
+if [ ! -x "/opt/libwebp-0.5.1-linux-x86-64/bin/cwebp" ]; then 
+  wget https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-0.5.1-linux-x86-64.tar.gz
+  tar -zxf libwebp-0.5.1-linux-x86-64.tar.gz
+  cp -r libwebp-0.5.1-linux-x86-64/ /opt
+  echo 'export PATH="/opt/libwebp-0.5.1-linux-x86-64/bin:$PATH"' | sudo tee -a ~/.bashrc
+  export PATH="/opt/libwebp-0.5.1-linux-x86-64/bin:$PATH"
 fi
 
-# megatools (command line client application for Mega)
+# megatools (command line client application for Mega) 之前1.9.97版本可正常安装使用，1.9.98安装时有庞大的1GB依赖包要安装，放弃
 # More: https://github.com/megous/megatools
-if [ ! -x "/opt/megatools/bin/megadl" ]; then
-  apt-get install build-essential libglib2.0-dev libssl-dev libcurl4-openssl-dev libgirepository1.0-dev -y
-  wget https://megatools.megous.com/builds/megatools-1.9.97.tar.gz
-  tar -zxf megatools-1.9.97.tar.gz
-  cd megatools-1.9.97
-  ./configure --prefix=/opt/megatools/
-  make && sudo make install
-  cd
-  echo 'MANDATORY_MANPATH /opt/megatools/share/man' | sudo tee -a /etc/manpath.config
-  echo 'export PATH="/opt/megatools/bin:$PATH"' | sudo tee -a ~/.bashrc
-  export PATH="/opt/megatools/bin:$PATH"
-fi
+# More: https://megatools.megous.com/
+#if [ ! -x "/opt/megatools/bin/megadl" ]; then
+#  apt-get install build-essential libglib2.0-dev libssl-dev libcurl4-openssl-dev libgirepository1.0-dev -y
+#  wget https://megatools.megous.com/builds/megatools-1.9.98.tar.gz
+#  tar -zxf megatools-1.9.98.tar.gz
+#  cd megatools-1.9.98
+#  ./configure --prefix=/opt/megatools/
+#  make && sudo make install
+#  cd
+#  echo 'MANDATORY_MANPATH /opt/megatools/share/man' | sudo tee -a /etc/manpath.config
+#  echo 'export PATH="/opt/megatools/bin:$PATH"' | sudo tee -a ~/.bashrc
+#  export PATH="/opt/megatools/bin:$PATH"
+#fi
 
 # you-get
 # More: https://github.com/soimort/you-get
 if [ ! -x "/usr/bin/you-get" ]; then
   wget -O - https://github.com/soimort/you-get/archive/master.zip > "you-get.zip"
-  7z x "you-get.zip" -o/opt
+  unzip "you-get.zip" -d /opt
   find /opt/you-get-master/ -type d -exec chmod 755 {} \;
   echo 'you-get(){ python3 /opt/you-get-master/you-get $*; }' >> /home/${u_name}/.bashrc
 fi
 
 # TeamViewer QuickSupport
 # More: http://www.teamviewer.com/en/download/linux/ 
+# 注意：下面的下载链接可能会变，若变更可到官网手动下载最新的TeamViewer QuickSupport
 if [ ! -x "/opt/teamviewerqs/tv_bin/script/teamviewer" ]; then
-	wget http://download.teamviewer.com/download/teamviewer_qs.tar.gz
+	wget https://downloadus2.teamviewer.com/download/version_11x/teamviewer_qs.tar.gz
 	tar -zxf teamviewer*.tar.gz -C /opt
+	chown -R ${u_name}.${u_name} /opt/teamvie*/
 	cat > /usr/share/applications/TeamViewerQS.desktop <<- 'END'
 	[Desktop Entry]
 	Encoding=UTF-8
@@ -836,44 +880,45 @@ fi
 # youtube-dl
 # More: https://github.com/rg3/youtube-dl
 #if [ ! -x "/usr/bin/youtube-dl" ]; then
-  ULINK="$(wget --no-check-certificate -qO - https://rg3.github.io/youtube-dl/download.html|grep 'youtube-dl -O ' -|sed 's/\(.*\)\(http.*dl\ \)\(.*\)/\2/g')"
-  wget --no-check-certificate -T 10 "${ULINK}" -O /usr/bin/youtube-dl
+  #ULINK="$(wget --no-check-certificate -qO - https://rg3.github.io/youtube-dl/download.html|grep 'youtube-dl -O ' -|sed 's/\(.*\)\(http.*dl\ \)\(.*\)/\2/g')"
+  #wget --no-check-certificate -T 10 "${ULINK}" -O /usr/bin/youtube-dl
+  wget --no-check-certificate -T 10 "https://yt-dl.org/downloads/latest/youtube-dl" -O /usr/bin/youtube-dl
   if [ $? -ne 0 ] && pgrep lantern; then
-    /usr/bin/proxychains wget --no-check-certificate -T 10 "${ULINK}" -O /usr/bin/youtube-dl
-    chmod 755 /usr/bin/youtube-dl
+    /usr/bin/proxychains wget --no-check-certificate -T 10 "https://yt-dl.org/downloads/latest/youtube-dl" -O /usr/bin/youtube-dl
   fi
+  chmod 755 /usr/bin/youtube-dl
 #fi
 
 #SoundWire(手机当电脑的移动音箱)
-#More: http://georgielabs.net/ (可能要跳墙才能下载)
+#More: http://georgielabs.altervista.org (可能要跳墙才能下载)
 #For 32-bit: http://georgielabs.altervista.org/SoundWire_Server_linux32.tar.gz
 #Andriod: https://play.google.com/store/apps/details?id=com.georgie.SoundWireFree
-if [ ! -x "/opt/SoundWireServer/SoundWireServer" ]; then
-	if pgrep lantern; then
-		/usr/bin/proxychains wget http://georgielabs.altervista.org/SoundWire_Server_linux64.tar.gz
-		tar -C /opt -xf SoundWire_Server_linux64.tar.gz
+#if [ ! -x "/opt/SoundWireServer/SoundWireServer" ]; then
+#	if pgrep lantern; then
+#		/usr/bin/proxychains wget http://georgielabs.altervista.org/SoundWire_Server_linux64.tar.gz
+#		tar -C /opt -xf SoundWire_Server_linux64.tar.gz
+#
+#		if [ -x "/opt/SoundWireServer/SoundWireServer" ]; then
+#			cat > /usr/share/applications/SoundWire-Server.desktop <<- 'END'
+#			[Desktop Entry]
+#			Name=SoundWire Server
+#			Comment=Server program for SoundWire Android app
+#			Exec=/opt/SoundWireServer/SoundWireServer
+#			Icon=/opt/SoundWireServer/sw-icon.xpm
+#			Terminal=false
+#			Type=Application
+#			Categories=AudioVideo;Audio
+#			END
+#
+#			chmod 644 /usr/share/applications/SoundWire-Server.desktop
+#			#sudo nice --19 ./SoundWireServer
+#			#sudo nice --19 ./SoundWireServer -nogui
+#			#configuration -- Built-in Audio -- Analog Stereo Input
+#		fi
+#	fi
+#fi
 
-		if [ -x "/opt/SoundWireServer/SoundWireServer" ]; then
-			cat > /usr/share/applications/SoundWire-Server.desktop <<- 'END'
-			[Desktop Entry]
-			Name=SoundWire Server
-			Comment=Server program for SoundWire Android app
-			Exec=/opt/SoundWireServer/SoundWireServer
-			Icon=/opt/SoundWireServer/sw-icon.xpm
-			Terminal=false
-			Type=Application
-			Categories=AudioVideo;Audio
-			END
-
-			chmod 644 /usr/share/applications/SoundWire-Server.desktop
-			#sudo nice --19 ./SoundWireServer
-			#sudo nice --19 ./SoundWireServer -nogui
-			#configuration -- Built-in Audio -- Analog Stereo Input
-		fi
-	fi
-fi
-
-# 抓虾，命令行下高速下载网易云音乐，虾米的音乐
+# 抓虾命令行工具，下载网易云音乐，虾米音乐
 #wget -O - https://github.com/sk1418/zhuaxia/archive/master.zip > /tmp/zhuaxia.zip
 #7z x /tmp/zhuaxia.zip -o/tmp/
 #python /tmp/zhuaxia-master/setup.py install
@@ -924,22 +969,24 @@ for d in xubuntu-restricted-extras wireshark tshark wine1.8 chromium-browser pep
   apt-fast -y install ${d} || echo "Software: ${d} install failed" >> ${LOG}
   }
 done
+apt-get clean
 
-# Install MariaDB version 10.0
-if [ ! -x "/usr/bin/mysql" ]; then
-  apt-fast install software-properties-common -y
-  apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-  add-apt-repository "deb http://mirrors.hustunique.com/mariadb/repo/10.0/ubuntu `lsb_release -cs` main"
-  apt-fast update
-  apt-fast install mariadb-server -y
-  echo "You should do some settings manually to secure the MariaDB: " >> ${LOG}
-  echo "sudo service mysql start" >> ${LOG}
-  echo "sudo mysql_secure_installation" >> ${LOG}
-fi
+# Install MariaDB version 10.1 [stable]
+# More: https://downloads.mariadb.org/mariadb/repositories/#mirror=neusoft
+#if [ ! -x "/usr/bin/mysql" ]; then
+#  apt-fast install software-properties-common -y
+#  apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
+#  add-apt-repository "deb [arch=amd64,i386,ppc64el] https://mirrors.tuna.tsinghua.edu.cn/mariadb/repo/10.1/ubuntu `lsb_release -cs` main"
+#  apt-fast update
+#  apt-fast install mariadb-server-10.1 -y
+#  echo "You should do some settings manually to secure the MariaDB: " >> ${LOG}
+#  echo "sudo service mysql start" >> ${LOG}
+#  echo "sudo mysql_secure_installation" >> ${LOG}
+#fi
 
-if ! `dpkg -s libdvdcss? &> /dev/null`; then
-  /usr/share/doc/libdvdread4/install-css.sh
-fi
+#if ! `dpkg -s libdvdcss? &> /dev/null`; then
+#  /usr/share/doc/libdvdread4/install-css.sh
+#fi
 
 # Set up wireshark to run without root privileges
 if [ -x "/usr/bin/wireshark" ]; then
@@ -969,6 +1016,16 @@ if [ ! -x "/usr/bin/VBox" ]; then
   fi
 fi
 
+# Install Google Chrome browser
+# More: http://askubuntu.com/questions/510056/how-to-install-google-chrome
+if [ ! -x "/usr/bin/google-chrome" ]; then
+  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+  echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+  apt-get update -o Dir::Etc::sourcelist="sources.list.d/google-chrome.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+  apt-fast install google-chrome-stable
+  apt-fast -f -y install
+fi
+
 #Foxit PDF Reader
 #More: https://www.foxitsoftware.com/downloads/
 #http://cdn01.foxitsoftware.com/pub/foxit/reader/desktop/linux/1.x/1.0/en_us/FoxitReader1.01.0925_Server_x64_enu_Setup.run.tar.gz
@@ -989,15 +1046,12 @@ if [ ! -s "/home/${u_name}/.config/autostart/hddtemp.desktop" ]; then
 	cat > /home/${u_name}/.config/autostart/hddtemp.desktop <<- 'END'
 	[Desktop Entry]
 	Encoding=UTF-8
-	Version=0.9.4
 	Type=Application
 	Name=hddtemp
 	Comment=Monitor hard drive temperature
 	Exec=/usr/bin/nohup sh -c "/bin/sleep 120 && /usr/sbin/hddtemp -4 -d -l 127.0.0.1 /dev/sda /dev/sdb"
-	OnlyShowIn=XFCE;
 	StartupNotify=false
-	Terminal=false
-	Hidden=false
+	Categories=GNOME;System;
 	END
 fi
 
@@ -1005,15 +1059,12 @@ if [ ! -s "/home/${u_name}/.config/autostart/conky.desktop" ]; then
 	cat > /home/${u_name}/.config/autostart/conky.desktop <<- 'END'
 	[Desktop Entry]
 	Encoding=UTF-8
-	Version=0.9.4
 	Type=Application
 	Name=Conky
 	Comment=conky
 	Exec=/usr/bin/nohup sh -c "/bin/sleep 2 && /usr/bin/conky -qdc /home/kashu/.conkyrc"
-	OnlyShowIn=XFCE;
 	StartupNotify=false
-	Terminal=false
-	Hidden=false
+	Categories=GNOME;System;
 	END
 fi
 
@@ -1021,15 +1072,12 @@ if [ ! -s "/home/${u_name}/.config/autostart/caffeine-1.desktop" ]; then
 	cat > /home/${u_name}/.config/autostart/caffeine-1.desktop <<- 'END'
 	[Desktop Entry]
 	Encoding=UTF-8
-	Version=0.9.4
 	Type=Application
 	Name=caffeine
 	Comment=deactivate the screensaver and sleep mode
 	Exec=/usr/bin/nohup sh -c "/bin/sleep 600 && /usr/bin/caffeine-indicator &> /dev/null"
-	OnlyShowIn=XFCE;
 	StartupNotify=false
-	Terminal=false
-	Hidden=false
+	Categories=GNOME;System;
 	END
 fi
 
@@ -1037,15 +1085,11 @@ if [ ! -s "/home/${u_name}/.config/autostart/lantern.desktop" ]; then
 	cat > /home/${u_name}/.config/autostart/lantern.desktop <<- 'END'
 	[Desktop Entry]
 	Encoding=UTF-8
-	Version=0.9.4
 	Type=Application
 	Name=Lantern
 	Comment=Lantern
-	Exec=/usr/bin/nohup sh -c "/bin/sleep 7 && /usr/lib/lantern/lantern.sh -addr 0.0.0.0:8787 -startup=true &> /dev/null"
-	OnlyShowIn=XFCE;
-	StartupNotify=false
-	Terminal=false
-	Hidden=false
+	Exec=/usr/bin/nohup sh -c "/bin/sleep 7 && /usr/lib/lantern/lantern.sh -addr 0.0.0.0:8787 -startup &> /dev/null"
+	Categories=Network
 	END
 fi
 
@@ -1065,10 +1109,10 @@ if [ ! -s "/home/${u_name}/.config/autostart/indicator-multiload.desktop" ]; the
 	END
 fi
 
-if [ -e "/usr/share/applications/indicator-multiload.desktop" ]; then
-  sed -i '/^Exec/d' /usr/share/applications/indicator-multiload.desktop
-  echo 'Exec=indicator-multiload --trayicon' >> /usr/share/applications/indicator-multiload.desktop
-fi
+#if [ -e "/usr/share/applications/indicator-multiload.desktop" ]; then
+#  sed -i '/^Exec/d' /usr/share/applications/indicator-multiload.desktop
+#  echo 'Exec=indicator-multiload --trayicon' >> /usr/share/applications/indicator-multiload.desktop
+#fi
 
 chown -R ${u_name}.${u_name} /home/${u_name}/
 chmod 664 /home/${u_name}/.config/autostart/*
